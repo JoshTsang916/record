@@ -20,10 +20,20 @@ function ghHeaders() {
   }
 }
 
+async function ensureOk(res: Response, context: string) {
+  if (res.ok) return
+  let detail = ''
+  try {
+    const txt = await res.text()
+    detail = txt
+  } catch {}
+  throw new Error(`${context} failed (${res.status}): ${detail || res.statusText}`)
+}
+
 async function getDefaultBranch(): Promise<string> {
   const { owner, name } = getRepo()
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}`, { headers: ghHeaders(), cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to get repo info')
+  await ensureOk(res, 'Get repo info')
   const json = await res.json()
   return json.default_branch || 'main'
 }
@@ -32,7 +42,7 @@ async function getHeadSha(branch: string): Promise<string | null> {
   const { owner, name } = getRepo()
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${branch}`, { headers: ghHeaders(), cache: 'no-store' })
   if (res.status === 404) return null
-  if (!res.ok) throw new Error('Failed to get ref')
+  await ensureOk(res, 'Get ref')
   const json = await res.json()
   return json.object.sha
 }
@@ -40,7 +50,7 @@ async function getHeadSha(branch: string): Promise<string | null> {
 async function getCommit(sha: string): Promise<any> {
   const { owner, name } = getRepo()
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/commits/${sha}`, { headers: ghHeaders(), cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to get commit')
+  await ensureOk(res, 'Get commit')
   return res.json()
 }
 
@@ -54,10 +64,8 @@ async function createBlob(content: string | Uint8Array, encoding: 'utf-8' | 'bas
   } else {
     body.content = typeof content === 'string' ? content : Buffer.from(content).toString('utf-8')
   }
-  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/blobs`, {
-    method: 'POST', headers: ghHeaders(), body: JSON.stringify(body)
-  })
-  if (!res.ok) throw new Error('Failed to create blob')
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/blobs`, { method: 'POST', headers: ghHeaders(), body: JSON.stringify(body) })
+  await ensureOk(res, 'Create blob')
   const json = await res.json()
   return json.sha as string
 }
@@ -73,7 +81,7 @@ async function createTree(baseTree: string | null, treeItems: Array<{ path: stri
   const body: any = { tree }
   if (baseTree) body.base_tree = baseTree
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/trees`, { method: 'POST', headers: ghHeaders(), body: JSON.stringify(body) })
-  if (!res.ok) throw new Error('Failed to create tree')
+  await ensureOk(res, 'Create tree')
   const json = await res.json()
   return json.sha as string
 }
@@ -82,25 +90,21 @@ async function createCommit(message: string, treeSha: string, parentSha?: string
   const { owner, name } = getRepo()
   const parents = parentSha ? [parentSha] : []
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/commits`, { method: 'POST', headers: ghHeaders(), body: JSON.stringify({ message, tree: treeSha, parents }) })
-  if (!res.ok) throw new Error('Failed to create commit')
+  await ensureOk(res, 'Create commit')
   const json = await res.json()
   return json.sha as string
 }
 
 async function updateRef(branch: string, sha: string) {
   const { owner, name } = getRepo()
-  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${branch}`, {
-    method: 'PATCH', headers: ghHeaders(), body: JSON.stringify({ sha })
-  })
-  if (!res.ok) throw new Error('Failed to update ref')
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${branch}`, { method: 'PATCH', headers: ghHeaders(), body: JSON.stringify({ sha }) })
+  await ensureOk(res, 'Update ref')
 }
 
 async function createRef(branch: string, sha: string) {
   const { owner, name } = getRepo()
-  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs`, {
-    method: 'POST', headers: ghHeaders(), body: JSON.stringify({ ref: `refs/heads/${branch}`, sha })
-  })
-  if (!res.ok) throw new Error('Failed to create ref')
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs`, { method: 'POST', headers: ghHeaders(), body: JSON.stringify({ ref: `refs/heads/${branch}`, sha }) })
+  await ensureOk(res, 'Create ref')
 }
 
 export async function commitFiles({ message, files, branch }: { message: string, files: Array<{ path: string, content: string | Uint8Array, binary?: boolean }>, branch?: string }) {
@@ -128,7 +132,7 @@ export async function getContent(path: string, ref?: string) {
   if (ref) url.searchParams.set('ref', ref)
   const res = await fetch(url.toString(), { headers: ghHeaders(), cache: 'no-store' })
   if (res.status === 404) return null
-  if (!res.ok) throw new Error('Failed to get content')
+  await ensureOk(res, 'Get content')
   const json = await res.json()
   if (json.encoding === 'base64') {
     const buf = Buffer.from(json.content, 'base64')
