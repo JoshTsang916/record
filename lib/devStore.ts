@@ -25,3 +25,7 @@ export function devUpdate(filePath: string, updated: IdeaFile, updateRecord?: Pa
   }
 }
 
+export function devRemove(filePath: string, id: string) {
+  store.files.delete(filePath)
+  store.index = store.index.filter(r => r.file_path !== filePath && r.id !== id)
+}

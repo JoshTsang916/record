@@ -6,8 +6,15 @@ import { useEffect, useState } from 'react'
 
 export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: () => void, onNewText?: () => void }) {
   const [queued, setQueued] = useState<number>(0)
+  const [dark, setDark] = useState(false)
 
   useEffect(() => {
+    // theme init
+    const pref = localStorage.getItem('theme')
+    const isDark = pref ? pref === 'dark' : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    setDark(isDark)
+    document.documentElement.classList.toggle('dark', isDark)
+
     const refresh = () => {
       try {
         const q = JSON.parse(localStorage.getItem('ideaQueue') || '[]')
@@ -39,8 +46,15 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
     } catch {}
   }
 
+  function toggleTheme() {
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+  }
+
   return (
-    <nav className="w-full border-b border-gray-200">
+    <nav className="w-full border-b border-gray-200 dark:border-gray-800">
       <div className="container h-14 flex items-center justify-between gap-3">
         <Link href="/" className="font-semibold">Idea Vault</Link>
         <div className="flex items-center gap-2">
@@ -48,9 +62,9 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
           <Button variant="outline" onClick={onNewText}>New (text)</Button>
           <Button onClick={onRecordClick}>Record</Button>
           <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>
+          <Button variant="ghost" onClick={toggleTheme}>{dark ? '亮色' : '夜間'}</Button>
         </div>
       </div>
     </nav>
   )
 }
-

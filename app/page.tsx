@@ -43,6 +43,16 @@ export default function HomePage() {
     return matchQ && matchTag
   }), [items, q, tag])
 
+  function statusZh(s: string) {
+    switch (s) {
+      case 'draft': return '草稿'
+      case 'curating': return '整理中'
+      case 'todo': return '待辦'
+      case 'done': return '完成'
+      default: return s
+    }
+  }
+
   async function onSaved() {
     await load()
   }
@@ -83,7 +93,7 @@ export default function HomePage() {
                   <div className="text-xs text-gray-500">{new Date(it.created_at).toLocaleString()}</div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-gray-600">重要性：{it.importance}・狀態：{it.status}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">重要性：{it.importance}・狀態：{statusZh(it.status)}</div>
                   <div className="mt-2 text-xs text-gray-600">Tags: {it.tags.join(', ')}</div>
                 </CardContent>
               </Card>
