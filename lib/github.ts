@@ -28,9 +28,10 @@ async function getDefaultBranch(): Promise<string> {
   return json.default_branch || 'main'
 }
 
-async function getHeadSha(branch: string): Promise<string> {
+async function getHeadSha(branch: string): Promise<string | null> {
   const { owner, name } = getRepo()
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${branch}`, { headers: ghHeaders(), cache: 'no-store' })
+  if (res.status === 404) return null
   if (!res.ok) throw new Error('Failed to get ref')
   const json = await res.json()
   return json.object.sha
@@ -61,7 +62,7 @@ async function createBlob(content: string | Uint8Array, encoding: 'utf-8' | 'bas
   return json.sha as string
 }
 
-async function createTree(baseTree: string, treeItems: Array<{ path: string, sha: string, mode?: string, type?: string }>) {
+async function createTree(baseTree: string | null, treeItems: Array<{ path: string, sha: string, mode?: string, type?: string }>) {
   const { owner, name } = getRepo()
   const tree = treeItems.map(it => ({
     path: it.path,
@@ -69,19 +70,18 @@ async function createTree(baseTree: string, treeItems: Array<{ path: string, sha
     type: it.type || 'blob',
     sha: it.sha
   }))
-  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/trees`, {
-    method: 'POST', headers: ghHeaders(), body: JSON.stringify({ base_tree: baseTree, tree })
-  })
+  const body: any = { tree }
+  if (baseTree) body.base_tree = baseTree
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/trees`, { method: 'POST', headers: ghHeaders(), body: JSON.stringify(body) })
   if (!res.ok) throw new Error('Failed to create tree')
   const json = await res.json()
   return json.sha as string
 }
 
-async function createCommit(message: string, treeSha: string, parentSha: string) {
+async function createCommit(message: string, treeSha: string, parentSha?: string) {
   const { owner, name } = getRepo()
-  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/commits`, {
-    method: 'POST', headers: ghHeaders(), body: JSON.stringify({ message, tree: treeSha, parents: [parentSha] })
-  })
+  const parents = parentSha ? [parentSha] : []
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/commits`, { method: 'POST', headers: ghHeaders(), body: JSON.stringify({ message, tree: treeSha, parents }) })
   if (!res.ok) throw new Error('Failed to create commit')
   const json = await res.json()
   return json.sha as string
@@ -95,12 +95,27 @@ async function updateRef(branch: string, sha: string) {
   if (!res.ok) throw new Error('Failed to update ref')
 }
 
+async function createRef(branch: string, sha: string) {
+  const { owner, name } = getRepo()
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs`, {
+    method: 'POST', headers: ghHeaders(), body: JSON.stringify({ ref: `refs/heads/${branch}`, sha })
+  })
+  if (!res.ok) throw new Error('Failed to create ref')
+}
+
 export async function commitFiles({ message, files, branch }: { message: string, files: Array<{ path: string, content: string | Uint8Array, binary?: boolean }>, branch?: string }) {
   const br = branch || await getDefaultBranch()
   const headSha = await getHeadSha(br)
+  const blobs = await Promise.all(files.map(f => createBlob(f.content, f.binary ? 'base64' : 'utf-8')))
+  if (!headSha) {
+    // initial commit on empty repo/branch
+    const treeSha = await createTree(null, files.map((f, i) => ({ path: f.path, sha: blobs[i] })))
+    const commitSha = await createCommit(message, treeSha)
+    await createRef(br, commitSha)
+    return { commitSha }
+  }
   const headCommit = await getCommit(headSha)
   const baseTree = headCommit.tree.sha
-  const blobs = await Promise.all(files.map(f => createBlob(f.content, f.binary ? 'base64' : 'utf-8')))
   const treeSha = await createTree(baseTree, files.map((f, i) => ({ path: f.path, sha: blobs[i] })))
   const commitSha = await createCommit(message, treeSha, headSha)
   await updateRef(br, commitSha)
