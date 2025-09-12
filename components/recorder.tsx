@@ -63,7 +63,11 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
     fd.append('durationSec', String(duration))
     try {
       const res = await fetch('/api/capture', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) {
+        let msg = `Upload failed (${res.status})`
+        try { const j = await res.json(); if (j?.error) msg = j.error } catch {}
+        throw new Error(msg)
+      }
       const j = await res.json()
       onSaved(j.id)
       onClose()

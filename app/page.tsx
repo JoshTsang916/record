@@ -58,6 +58,8 @@ export default function HomePage() {
       setShowTextModal(false)
       setNewText(''); setNewTitle(''); setNewTags('')
       await load()
+    } else {
+      try { const j = await res.json(); alert(j?.error || 'Save failed') } catch { alert('Save failed') }
     }
   }
 
