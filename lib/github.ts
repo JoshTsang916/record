@@ -41,7 +41,7 @@ async function getDefaultBranch(): Promise<string> {
 async function getHeadSha(branch: string): Promise<string | null> {
   const { owner, name } = getRepo()
   const res = await fetch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${branch}`, { headers: ghHeaders(), cache: 'no-store' })
-  if (res.status === 404) return null
+  if (res.status === 404 || res.status === 409) return null // 409: repository empty
   await ensureOk(res, 'Get ref')
   const json = await res.json()
   return json.object.sha
