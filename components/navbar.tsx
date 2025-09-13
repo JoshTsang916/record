@@ -58,7 +58,7 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
       <div className="container h-14 flex items-center justify-between gap-3">
         <Link href="/" className="font-semibold">Idea Vault</Link>
         <div className="flex items-center gap-2">
-          <Input placeholder="Search" className="hidden sm:block w-64" onChange={() => {}} />
+          {/* 頁面已有搜尋框，避免重複顯示 */}
           <Button variant="outline" onClick={onNewText}>New (text)</Button>
           <Button onClick={onRecordClick}>Record</Button>
           <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>
