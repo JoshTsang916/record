@@ -86,18 +86,18 @@ export default function HomePage() {
       <div className="container py-4 space-y-4">
         <div className="flex gap-2 items-center">
           <Input placeholder="Search ideas" value={q} onChange={e => setQ(e.target.value)} className="flex-1" />
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
             <option value="">所有狀態</option>
             <option value="draft">草稿</option>
             <option value="curating">整理中</option>
             <option value="todo">待辦</option>
             <option value="done">完成</option>
           </select>
-          <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm">
+          <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
             <option value="">All tags</option>
             {tags.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm">
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
             <option value="newest">最新優先</option>
             <option value="importance">重要性優先</option>
           </select>

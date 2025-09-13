@@ -79,9 +79,9 @@ export default function IdeaDetailsPage() {
         <label className="text-sm">Tags (comma)</label>
         <Input value={tags.join(', ')} onChange={e => setTags(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
         <label className="text-sm">Importance (1..5)</label>
-        <input type="number" min={1} max={5} value={importance} onChange={e => setImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24" />
+        <input type="number" min={1} max={5} value={importance} onChange={e => setImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
         <label className="text-sm">狀態</label>
-        <select value={status} onChange={e => setStatus(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm w-40">
+        <select value={status} onChange={e => setStatus(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm w-40 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
           <option value="draft">草稿</option>
           <option value="curating">整理中</option>
           <option value="todo">待辦</option>
