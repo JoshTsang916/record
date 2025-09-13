@@ -127,9 +127,9 @@ export default function HomePage() {
                       {it.tags.map(t => (
                         <button
                           key={t}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTag(t) }}
-                          className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700"
-                          title={`篩選：${t}`}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTag(prev => prev === t ? '' : t) }}
+                          className={`inline-flex items-center rounded-full text-xs px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 ${tag===t ? 'bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+                          title={tag===t ? `取消篩選：${t}` : `篩選：${t}`}
                         >
                           {t}
                         </button>
