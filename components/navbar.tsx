@@ -55,15 +55,23 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
 
   return (
     <nav className="w-full border-b border-gray-200 dark:border-gray-800">
-      <div className="container h-14 flex items-center justify-between gap-3">
+      <div className="container py-2 sm:h-14 sm:py-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {/* 第一行：品牌（手機置頂） */}
         <Link href="/" className="font-semibold">Idea Vault</Link>
-        <div className="flex items-center gap-2">
-          {/* 頁面已有搜尋框，避免重複顯示 */}
-          <Link href="/board"><Button variant="outline">Board</Button></Link>
-          <Button variant="outline" onClick={onNewText}>New (text)</Button>
-          <Button onClick={onRecordClick}>Record</Button>
-          <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>
-          <Button variant="ghost" onClick={toggleTheme}>{dark ? '亮色' : '夜間'}</Button>
+
+        {/* 手機：分兩行群組；桌機：同一行靠右 */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          {/* 第二行（手機）：新增/錄音/重試 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={onNewText}>New (text)</Button>
+            <Button onClick={onRecordClick}>Record</Button>
+            <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>
+          </div>
+          {/* 第三行（手機）：看板與主題切換 */}
+          <div className="flex items-center gap-2">
+            <Link href="/board"><Button variant="outline">看板</Button></Link>
+            <Button variant="ghost" onClick={toggleTheme}>{dark ? '亮色' : '夜間'}</Button>
+          </div>
         </div>
       </div>
     </nav>
