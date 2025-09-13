@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import ChipsInput from '@/components/chips-input'
 import { Button } from '@/components/ui/button'
 
 export default function IdeaDetailsPage() {
@@ -80,8 +81,8 @@ export default function IdeaDetailsPage() {
       <div className="grid gap-3">
         <label className="text-sm">Title</label>
         <Input value={title} onChange={e => setTitle(e.target.value)} />
-        <label className="text-sm">Tags (comma)</label>
-        <Input value={tags.join(', ')} onChange={e => setTags(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
+        <label className="text-sm">標籤</label>
+        <ChipsInput value={tags} onChange={setTags} placeholder="新增標籤，Enter/逗號確定" />
         <label className="text-sm">Importance (1..5)</label>
         <input type="number" min={1} max={5} value={importance} onChange={e => setImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
         <label className="text-sm">狀態</label>

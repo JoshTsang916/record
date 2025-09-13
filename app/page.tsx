@@ -125,7 +125,14 @@ export default function HomePage() {
                   {it.tags.length > 0 ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {it.tags.map(t => (
-                        <span key={t} className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs px-2 py-1">{t}</span>
+                        <button
+                          key={t}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTag(t) }}
+                          className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+                          title={`篩選：${t}`}
+                        >
+                          {t}
+                        </button>
                       ))}
                     </div>
                   ) : (
