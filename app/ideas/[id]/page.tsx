@@ -18,6 +18,7 @@ export default function IdeaDetailsPage() {
   const [transcript, setTranscript] = useState('')
   const [audioUrl, setAudioUrl] = useState('')
   const [createdAt, setCreatedAt] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => { load() }, [id])
   async function load() {
@@ -41,6 +42,8 @@ export default function IdeaDetailsPage() {
   }
 
   async function save() {
+    if (saving) return
+    setSaving(true)
     const res = await fetch('/api/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -52,6 +55,7 @@ export default function IdeaDetailsPage() {
       // 成功後自動回首頁
       router.push('/')
     }
+    setSaving(false)
   }
 
   async function onDelete() {
@@ -91,7 +95,7 @@ export default function IdeaDetailsPage() {
         <Textarea value={transcript} onChange={e => setTranscript(e.target.value)} />
       </div>
       <div className="flex gap-2">
-        <Button onClick={save}>儲存</Button>
+        <Button onClick={save} disabled={saving}>{saving ? '儲存中…' : '儲存'}</Button>
         <Button variant="outline" onClick={onDelete}>刪除</Button>
       </div>
     </div>

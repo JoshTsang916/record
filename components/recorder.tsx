@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from './ui/button'
 import ChipsInput from './chips-input'
+import { Input } from './ui/input'
 
 export default function RecorderModal({ open, onClose, onSaved }: { open: boolean, onClose: () => void, onSaved: (id: string) => void }) {
   const [recording, setRecording] = useState(false)
@@ -116,7 +117,7 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
       <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 dark:text-gray-100 p-4">
         <h2 className="text-lg font-semibold mb-2">Record Idea</h2>
         <div className="space-y-2">
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title (optional)" className="w-full h-10 rounded-md border px-3" />
+          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title (optional)" />
           <ChipsInput value={tags} onChange={setTags} placeholder="新增標籤，Enter/逗號確定" />
           <div className="flex gap-2 items-center">
             <label className="text-sm">重要性</label>

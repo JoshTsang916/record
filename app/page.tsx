@@ -5,6 +5,7 @@ import RecorderModal from '@/components/recorder'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import ChipsInput from '@/components/chips-input'
 
 type Item = {
@@ -31,6 +32,7 @@ export default function HomePage() {
   const [newTags, setNewTags] = useState<string[]>([])
   const [newImportance, setNewImportance] = useState<number>(3)
   const [newStatus, setNewStatus] = useState<'draft'|'curating'|'todo'|'done'>('draft')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -68,6 +70,8 @@ export default function HomePage() {
   }
 
   async function createTextIdea() {
+    if (creating) return
+    setCreating(true)
     const fd = new FormData()
     fd.append('title', newTitle)
     fd.append('tags', newTags.join(','))
@@ -83,6 +87,7 @@ export default function HomePage() {
     } else {
       try { const j = await res.json(); alert(j?.error || 'Save failed') } catch { alert('Save failed') }
     }
+    setCreating(false)
   }
 
   return (
@@ -137,8 +142,8 @@ export default function HomePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 dark:text-gray-100 p-4 space-y-2">
             <h2 className="text-lg font-semibold">New Text Idea</h2>
-            <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" className="w-full h-10 rounded-md border px-3" />
-            <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Write your idea..." className="w-full min-h-[120px] rounded-md border px-3 py-2 text-sm" />
+            <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" />
+            <Textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Write your idea..." />
             <ChipsInput value={newTags} onChange={setNewTags} placeholder="新增標籤，Enter/逗號確定" />
             <div className="flex items-center gap-2">
               <label className="text-sm">重要性</label>
@@ -152,8 +157,8 @@ export default function HomePage() {
               </select>
             </div>
             <div className="flex justify-end gap-2">
-              <button className="h-10 px-4 rounded-md border" onClick={() => setShowTextModal(false)}>Cancel</button>
-              <button className="h-10 px-4 rounded-md bg-black text-white" onClick={createTextIdea}>Save</button>
+              <button className="h-10 px-4 rounded-md border" onClick={() => setShowTextModal(false)} disabled={creating}>Cancel</button>
+              <button className="h-10 px-4 rounded-md bg-black text-white disabled:opacity-50" onClick={createTextIdea} disabled={creating}>{creating ? 'Saving...' : 'Save'}</button>
             </div>
           </div>
         </div>
