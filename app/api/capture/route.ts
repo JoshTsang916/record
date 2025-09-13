@@ -18,6 +18,8 @@ export async function POST(req: NextRequest) {
     let durationSec = 0
     let textOnly = ''
     let audioFile: File | null = null
+    let importance: number = 3
+    let status: 'draft'|'curating'|'todo'|'done' = 'draft'
     if (ct.includes('multipart/form-data')) {
       const form = await req.formData()
       const t = form.get('title')
