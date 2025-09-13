@@ -25,11 +25,15 @@ export async function POST(req: NextRequest) {
       const wt = form.get('wantTranscription')
       const dur = form.get('durationSec')
       const txt = form.get('text')
+      const imp = form.get('importance')
+      const st = form.get('status')
       title = typeof t === 'string' ? t : ''
       tags = typeof tg === 'string' ? tg.split(',').map(s => s.trim()).filter(Boolean) : []
       wantTranscription = typeof wt === 'string' ? wt === 'true' : true
       durationSec = typeof dur === 'string' ? Number(dur) || 0 : 0
       textOnly = typeof txt === 'string' ? txt : ''
+      if (typeof imp === 'string') importance = Number(imp) || 3
+      if (typeof st === 'string') status = (['draft','curating','todo','done'].includes(st) ? st : 'draft') as any
       const a = form.get('audio')
       if (a && a instanceof File) audioFile = a
     } else {
@@ -39,6 +43,8 @@ export async function POST(req: NextRequest) {
       wantTranscription = json.wantTranscription !== false
       durationSec = Number(json.durationSec || 0)
       textOnly = json.text || ''
+      if (json.importance) importance = Number(json.importance) || 3
+      if (json.status) status = (['draft','curating','todo','done'].includes(json.status) ? json.status : 'draft')
       // audio is not supported in JSON body here
     }
 
@@ -77,8 +83,8 @@ export async function POST(req: NextRequest) {
       title: title || (transcriptText ? transcriptText.split('\n')[0].slice(0, 80) : 'Untitled'),
       created_at: nowIso,
       updated_at: nowIso,
-      status: 'draft',
-      importance: 3,
+      status: (status as any) || 'draft',
+      importance: typeof importance === 'number' ? importance : 3,
       tags,
       audio: { url: '', duration_sec: durationSec },
       transcript: { model, confidence: conf },

@@ -5,6 +5,7 @@ import RecorderModal from '@/components/recorder'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
+import ChipsInput from '@/components/chips-input'
 
 type Item = {
   id: string
@@ -27,7 +28,9 @@ export default function HomePage() {
   const [showTextModal, setShowTextModal] = useState(false)
   const [newText, setNewText] = useState('')
   const [newTitle, setNewTitle] = useState('')
-  const [newTags, setNewTags] = useState('')
+  const [newTags, setNewTags] = useState<string[]>([])
+  const [newImportance, setNewImportance] = useState<number>(3)
+  const [newStatus, setNewStatus] = useState<'draft'|'curating'|'todo'|'done'>('draft')
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -67,13 +70,15 @@ export default function HomePage() {
   async function createTextIdea() {
     const fd = new FormData()
     fd.append('title', newTitle)
-    fd.append('tags', newTags)
+    fd.append('tags', newTags.join(','))
     fd.append('text', newText)
     fd.append('wantTranscription', 'false')
+    fd.append('importance', String(newImportance))
+    fd.append('status', newStatus)
     const res = await fetch('/api/capture', { method: 'POST', body: fd })
     if (res.ok) {
       setShowTextModal(false)
-      setNewText(''); setNewTitle(''); setNewTags('')
+      setNewText(''); setNewTitle(''); setNewTags([])
       await load()
     } else {
       try { const j = await res.json(); alert(j?.error || 'Save failed') } catch { alert('Save failed') }
@@ -112,7 +117,15 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-gray-600 dark:text-gray-300">重要性：{it.importance}・狀態：{statusZh(it.status)}</div>
-                  <div className="mt-2 text-xs text-gray-600">Tags: {it.tags.join(', ')}</div>
+                  {it.tags.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {it.tags.map(t => (
+                        <span key={t} className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs px-2 py-1">{t}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-500">Tags:</div>
+                  )}
                 </CardContent>
               </Card>
             </Link>
@@ -122,11 +135,22 @@ export default function HomePage() {
       <RecorderModal open={open} onClose={() => setOpen(false)} onSaved={() => onSaved()} />
       {showTextModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white p-4 space-y-2">
+          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 dark:text-gray-100 p-4 space-y-2">
             <h2 className="text-lg font-semibold">New Text Idea</h2>
             <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" className="w-full h-10 rounded-md border px-3" />
             <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Write your idea..." className="w-full min-h-[120px] rounded-md border px-3 py-2 text-sm" />
-            <input value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="Tags (comma)" className="w-full h-10 rounded-md border px-3" />
+            <ChipsInput value={newTags} onChange={setNewTags} placeholder="新增標籤，Enter/逗號確定" />
+            <div className="flex items-center gap-2">
+              <label className="text-sm">重要性</label>
+              <input type="number" min={1} max={5} value={newImportance} onChange={e => setNewImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24 dark:bg-gray-900 dark:border-gray-700" />
+              <label className="text-sm">狀態</label>
+              <select value={newStatus} onChange={e => setNewStatus(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700">
+                <option value="draft">草稿</option>
+                <option value="curating">整理中</option>
+                <option value="todo">待辦</option>
+                <option value="done">完成</option>
+              </select>
+            </div>
             <div className="flex justify-end gap-2">
               <button className="h-10 px-4 rounded-md border" onClick={() => setShowTextModal(false)}>Cancel</button>
               <button className="h-10 px-4 rounded-md bg-black text-white" onClick={createTextIdea}>Save</button>

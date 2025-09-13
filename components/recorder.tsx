@@ -1,14 +1,17 @@
 "use client"
 import { useEffect, useRef, useState } from 'react'
 import { Button } from './ui/button'
+import ChipsInput from './chips-input'
 
 export default function RecorderModal({ open, onClose, onSaved }: { open: boolean, onClose: () => void, onSaved: (id: string) => void }) {
   const [recording, setRecording] = useState(false)
   const [duration, setDuration] = useState(0)
   const [title, setTitle] = useState('')
-  const [tags, setTags] = useState('')
+  const [tags, setTags] = useState<string[]>([])
   const [transcribe, setTranscribe] = useState(true)
   const [error, setError] = useState('')
+  const [importance, setImportance] = useState<number>(3)
+  const [status, setStatus] = useState<'draft'|'curating'|'todo'|'done'>('draft')
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
   const timerRef = useRef<any>(null)
@@ -58,9 +61,11 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
     const fd = new FormData()
     fd.append('audio', blob, 'audio')
     fd.append('title', title)
-    fd.append('tags', tags)
+    fd.append('tags', tags.join(','))
     fd.append('wantTranscription', String(transcribe))
     fd.append('durationSec', String(duration))
+    fd.append('importance', String(importance))
+    fd.append('status', status)
     try {
       const res = await fetch('/api/capture', { method: 'POST', body: fd })
       if (!res.ok) {
@@ -79,9 +84,11 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
         arr.push({
           audio: { data: Array.from(new Uint8Array(arrayBuffer)), type: blob.type },
           title,
-          tags: tags.split(',').map(s => s.trim()).filter(Boolean),
+          tags: tags,
           wantTranscription: transcribe,
-          durationSec: duration
+          durationSec: duration,
+          importance,
+          status
         })
         localStorage.setItem('ideaQueue', JSON.stringify(arr))
       } catch {}
@@ -106,11 +113,22 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-white p-4">
+      <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 dark:text-gray-100 p-4">
         <h2 className="text-lg font-semibold mb-2">Record Idea</h2>
         <div className="space-y-2">
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title (optional)" className="w-full h-10 rounded-md border px-3" />
-          <input value={tags} onChange={e => setTags(e.target.value)} placeholder="Tags (comma)" className="w-full h-10 rounded-md border px-3" />
+          <ChipsInput value={tags} onChange={setTags} placeholder="新增標籤，Enter/逗號確定" />
+          <div className="flex gap-2 items-center">
+            <label className="text-sm">重要性</label>
+            <input type="number" min={1} max={5} value={importance} onChange={e => setImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24 dark:bg-gray-900 dark:border-gray-700" />
+            <label className="text-sm">狀態</label>
+            <select value={status} onChange={e => setStatus(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700">
+              <option value="draft">草稿</option>
+              <option value="curating">整理中</option>
+              <option value="todo">待辦</option>
+              <option value="done">完成</option>
+            </select>
+          </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={transcribe} onChange={e => setTranscribe(e.target.checked)} /> Transcribe</label>
           <div className="text-sm text-gray-600">Duration: {duration}s</div>
           {error ? <div className="text-sm text-red-600">{error}</div> : null}
