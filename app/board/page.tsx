@@ -100,8 +100,8 @@ export default function BoardPage() {
             </div>
             <div className="p-3 flex flex-col gap-2">
               {grouped[col].map(it => (
-                <div key={it.id} draggable onDragStart={(e) => onDragStart(e, it.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move ${saving.has(it.id) ? 'opacity-50' : ''}`}>
-                  <div className="text-sm font-medium truncate">{it.title || it.id}</div>
+                <div key={it.id} draggable onDragStart={(e) => onDragStart(e, it.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${saving.has(it.id) ? 'opacity-50' : ''}`}>
+                  <div className="text-sm font-medium break-words whitespace-pre-wrap">{it.title || it.id}</div>
                   <div className="mt-1 text-xs text-gray-500">重要性 {it.importance}</div>
                   {it.tags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">

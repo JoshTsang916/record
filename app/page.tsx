@@ -117,7 +117,7 @@ export default function HomePage() {
             <Link key={it.id} href={`/ideas/${it.id}`}>
               <Card className="hover:shadow-md transition">
                 <CardHeader>
-                  <div className="font-medium truncate">{it.title || it.id}</div>
+                  <div className="font-medium break-words whitespace-pre-wrap">{it.title || it.id}</div>
                   <div className="text-xs text-gray-500">{new Date(it.created_at).toLocaleString()}</div>
                 </CardHeader>
                 <CardContent>
