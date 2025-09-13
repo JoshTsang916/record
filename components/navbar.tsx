@@ -59,7 +59,7 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
         <Link href="/" className="font-semibold">Idea Vault</Link>
         <div className="flex items-center gap-2">
           {/* 頁面已有搜尋框，避免重複顯示 */}
-          <Link href="/board" className="hidden sm:block"><Button variant="outline">Board</Button></Link>
+          <Link href="/board"><Button variant="outline">Board</Button></Link>
           <Button variant="outline" onClick={onNewText}>New (text)</Button>
           <Button onClick={onRecordClick}>Record</Button>
           <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>

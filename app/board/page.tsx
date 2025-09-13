@@ -84,9 +84,9 @@ export default function BoardPage() {
         <div className="text-lg font-semibold">看板視圖</div>
         <Link href="/" className="text-sm underline">返回列表</Link>
       </div>
-      <div className="mb-3 flex gap-2 items-center">
-        <Input placeholder="搜尋" value={q} onChange={e => setQ(e.target.value)} className="flex-1" />
-        <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
+      <div className="mb-3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+        <Input placeholder="搜尋" value={q} onChange={e => setQ(e.target.value)} className="w-full sm:flex-1" />
+        <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
           <option value="">All tags</option>
           {tags.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -119,4 +119,3 @@ export default function BoardPage() {
     </div>
   )
 }
-
