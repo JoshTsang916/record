@@ -20,6 +20,7 @@ function statusZh(s: string) {
     case 'curating': return '整理中'
     case 'todo': return '待辦'
     case 'done': return '完成'
+    case 'archived': return '封存'
     default: return s
   }
 }

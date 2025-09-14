@@ -1,4 +1,4 @@
-export type IdeaStatus = 'draft' | 'curating' | 'todo' | 'done'
+export type IdeaStatus = 'draft' | 'curating' | 'todo' | 'done' | 'archived'
 
 export interface IdeaFrontmatter {
   id: string
@@ -37,4 +37,3 @@ export interface IdeaFile {
   frontmatter: IdeaFrontmatter
   content: string
 }
-

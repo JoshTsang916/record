@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     let textOnly = ''
     let audioFile: File | null = null
     let importance: number = 3
-    let status: 'draft'|'curating'|'todo'|'done' = 'draft'
+    let status: 'draft'|'curating'|'todo'|'done'|'archived' = 'draft'
     if (ct.includes('multipart/form-data')) {
       const form = await req.formData()
       const t = form.get('title')
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       durationSec = typeof dur === 'string' ? Number(dur) || 0 : 0
       textOnly = typeof txt === 'string' ? txt : ''
       if (typeof imp === 'string') importance = Number(imp) || 3
-      if (typeof st === 'string') status = (['draft','curating','todo','done'].includes(st) ? st : 'draft') as any
+      if (typeof st === 'string') status = (['draft','curating','todo','done','archived'].includes(st) ? st : 'draft') as any
       const a = form.get('audio')
       if (a && a instanceof File) audioFile = a
     } else {
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       durationSec = Number(json.durationSec || 0)
       textOnly = json.text || ''
       if (json.importance) importance = Number(json.importance) || 3
-      if (json.status) status = (['draft','curating','todo','done'].includes(json.status) ? json.status : 'draft')
+      if (json.status) status = (['draft','curating','todo','done','archived'].includes(json.status) ? json.status : 'draft') as any
       // audio is not supported in JSON body here
     }
 

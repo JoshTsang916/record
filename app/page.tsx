@@ -25,6 +25,7 @@ export default function HomePage() {
   const [q, setQ] = useState('')
   const [tag, setTag] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [sortBy, setSortBy] = useState<'newest'|'importance'>('newest')
   const [showTextModal, setShowTextModal] = useState(false)
   const [newText, setNewText] = useState('')
@@ -49,7 +50,8 @@ export default function HomePage() {
       const matchQ = !q || (i.title?.toLowerCase().includes(q.toLowerCase()))
       const matchTag = !tag || i.tags.includes(tag)
       const matchStatus = !statusFilter || i.status === statusFilter
-      return matchQ && matchTag && matchStatus
+      const matchArchived = showArchived ? true : i.status !== 'archived'
+      return matchQ && matchTag && matchStatus && matchArchived
     })
     if (sortBy === 'importance') arr = [...arr].sort((a, b) => (b.importance - a.importance) || b.created_at.localeCompare(a.created_at))
     return arr
@@ -61,6 +63,7 @@ export default function HomePage() {
       case 'curating': return '整理中'
       case 'todo': return '待辦'
       case 'done': return '完成'
+      case 'archived': return '封存'
       default: return s
     }
   }
@@ -96,13 +99,17 @@ export default function HomePage() {
       <div className="container py-4 space-y-4">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
           <Input placeholder="Search ideas" value={q} onChange={e => setQ(e.target.value)} className="w-full sm:flex-1" />
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
+          <select value={statusFilter} onChange={e => { const v = e.target.value; setStatusFilter(v); if (v==='archived') setShowArchived(true) }} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
             <option value="">所有狀態</option>
             <option value="draft">草稿</option>
             <option value="curating">整理中</option>
             <option value="todo">待辦</option>
             <option value="done">完成</option>
+            <option value="archived">封存</option>
           </select>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+            <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} /> 顯示封存
+          </label>
           <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
             <option value="">All tags</option>
             {tags.map(t => <option key={t} value={t}>{t}</option>)}
@@ -117,8 +124,32 @@ export default function HomePage() {
             <Link key={it.id} href={`/ideas/${it.id}`}>
               <Card className="hover:shadow-md transition">
                 <CardHeader>
-                  <div className="font-medium break-words whitespace-pre-wrap">{it.title || it.id}</div>
-                  <div className="text-xs text-gray-500">{new Date(it.created_at).toLocaleString()}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium break-words whitespace-pre-wrap">{it.title || it.id}</div>
+                      <div className="text-xs text-gray-500">{new Date(it.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="shrink-0 flex gap-1">
+                      {it.status !== 'archived' ? (
+                        <button
+                          title="封存"
+                          onClick={async (e) => { e.preventDefault(); e.stopPropagation(); const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'archived' }) }); if (!r.ok) { try { const j = await r.json(); alert(j?.error || '封存失敗') } catch { alert('封存失敗') } } await load() }}
+                          className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                        >封存</button>
+                      ) : (
+                        <button
+                          title="還原為草稿"
+                          onClick={async (e) => { e.preventDefault(); e.stopPropagation(); const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'draft' }) }); if (!r.ok) { try { const j = await r.json(); alert(j?.error || '還原失敗') } catch { alert('還原失敗') } } await load() }}
+                          className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                        >還原</button>
+                      )}
+                      <button
+                        title="刪除"
+                        onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (!confirm('確定要刪除這筆靈感嗎？此動作無法復原。')) return; const res = await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id }) }); if (!res.ok) { try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') } } await load() }}
+                        className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                      >刪除</button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-gray-600 dark:text-gray-300">重要性：{it.importance}・狀態：{statusZh(it.status)}</div>

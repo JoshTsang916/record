@@ -15,7 +15,7 @@ export default function IdeaDetailsPage() {
   const [title, setTitle] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [importance, setImportance] = useState(3)
-  const [status, setStatus] = useState<'draft'|'curating'|'todo'|'done'>('draft')
+  const [status, setStatus] = useState<'draft'|'curating'|'todo'|'done'|'archived'>('draft')
   const [transcript, setTranscript] = useState('')
   const [audioUrl, setAudioUrl] = useState('')
   const [createdAt, setCreatedAt] = useState('')
@@ -91,6 +91,7 @@ export default function IdeaDetailsPage() {
           <option value="curating">整理中</option>
           <option value="todo">待辦</option>
           <option value="done">完成</option>
+          <option value="archived">封存</option>
         </select>
         <label className="text-sm">Transcript</label>
         <Textarea value={transcript} onChange={e => setTranscript(e.target.value)} />
