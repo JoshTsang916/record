@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ChipsInput from '@/components/chips-input'
@@ -10,6 +10,8 @@ export default function IdeaDetailsPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const id = params.id
+  const search = useSearchParams()
+  const path = search.get('path') || ''
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [title, setTitle] = useState('')
@@ -24,7 +26,8 @@ export default function IdeaDetailsPage() {
   useEffect(() => { load() }, [id])
   async function load() {
     try {
-      const res = await fetch(`/api/read?id=${id}`)
+      const qs = path ? `?path=${encodeURIComponent(path)}` : `?id=${id}`
+      const res = await fetch(`/api/read${qs}`)
       if (!res.ok) throw new Error('Failed to load')
       const j = await res.json()
       const fm = j.file.frontmatter

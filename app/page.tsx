@@ -121,7 +121,7 @@ export default function HomePage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(it => (
-            <Link key={it.id} href={`/ideas/${it.id}`}>
+            <Link key={it.id} href={{ pathname: `/ideas/${it.id}`, query: { path: it.file_path } }}>
               <Card className="hover:shadow-md transition">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
@@ -145,7 +145,7 @@ export default function HomePage() {
                       )}
                       <button
                         title="刪除"
-                        onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (!confirm('確定要刪除這筆靈感嗎？此動作無法復原。')) return; const res = await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id }) }); if (!res.ok) { try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') } } await load() }}
+                        onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (!confirm('確定要刪除這筆靈感嗎？此動作無法復原。')) return; const res = await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, file_path: it.file_path }) }); if (!res.ok) { try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') } } await load() }}
                         className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                       >刪除</button>
                     </div>

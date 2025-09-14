@@ -126,11 +126,14 @@ export async function commitFiles({ message, files, branch }: { message: string,
   return { commitSha }
 }
 
-export async function getContent(path: string, ref?: string) {
+export async function getContent(path: string, ref?: string, init?: RequestInit & { next?: { revalidate?: number, tags?: string[] } }) {
   const { owner, name } = getRepo()
   const url = new URL(`https://api.github.com/repos/${owner}/${name}/contents/${encodeURIComponent(path)}`)
   if (ref) url.searchParams.set('ref', ref)
-  const res = await fetch(url.toString(), { headers: ghHeaders(), cache: 'no-store' })
+  const fetchInit: any = { headers: ghHeaders() }
+  if (init && init.next) fetchInit.next = init.next
+  else fetchInit.cache = 'no-store'
+  const res = await fetch(url.toString(), fetchInit)
   if (res.status === 404) return null
   await ensureOk(res, 'Get content')
   const json = await res.json()
@@ -156,7 +159,8 @@ export async function readIdeaFileByPath(path: string): Promise<IdeaFile> {
 }
 
 export async function readIndex(): Promise<IndexRecord[]> {
-  const body = await getContent(INDEX_PATH)
+  // Use short revalidate and cache tag to accelerate list fetches.
+  const body = await getContent(INDEX_PATH, undefined, { next: { revalidate: 15, tags: ['ideas-index'] } })
   return body ? JSON.parse(body) : []
 }
 

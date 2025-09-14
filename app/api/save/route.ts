@@ -3,6 +3,7 @@ import { readIndex, readIdeaFileByPath, commitFiles } from '@/lib/github'
 import { parseIdea, serializeIdea } from '@/lib/markdown'
 import { makeWebhookPayload, postWebhook } from '@/lib/webhook'
 import { devList, devRead, devUpdate } from '@/lib/devStore'
+import { revalidateTag } from 'next/cache'
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
     })
     await postWebhook('idea.updated', payload)
 
+    try { revalidateTag('ideas-index') } catch {}
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })

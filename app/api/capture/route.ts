@@ -6,6 +6,7 @@ import { transcribeIfNeeded } from '@/lib/transcription'
 import { makeWebhookPayload, postWebhook } from '@/lib/webhook'
 import type { IdeaFrontmatter, IndexRecord } from '@/lib/types'
 import { devAdd } from '@/lib/devStore'
+import { revalidateTag } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -145,6 +146,7 @@ export async function POST(req: NextRequest) {
     })
     await postWebhook('idea.created', payload)
 
+    try { revalidateTag('ideas-index') } catch {}
     return NextResponse.json({ ok: true, id, file_path: mdPath })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
