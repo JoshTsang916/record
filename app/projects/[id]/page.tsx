@@ -133,10 +133,12 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-3 flex flex-col gap-2">
               {(grouped as any)[col].map((t: Task) => (
-                <div key={t.id} draggable onDragStart={(e)=>onDragStart(e, t.id)} className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden">
-                  <div className="text-sm font-medium break-words whitespace-pre-wrap">{t.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">優先度 {t.priority}</div>
-                </div>
+                <a key={t.id} href={`/tasks/${t.id}?path=${encodeURIComponent(t.file_path)}`}>
+                  <div draggable onDragStart={(e)=>onDragStart(e, t.id)} className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden">
+                    <div className="text-sm font-medium break-words whitespace-pre-wrap">{t.title}</div>
+                    <div className="mt-1 text-xs text-gray-500">優先度 {t.priority}</div>
+                  </div>
+                </a>
               ))}
             </div>
           </div>
@@ -145,4 +147,3 @@ export default function ProjectDetailPage() {
     </div>
   )
 }
-

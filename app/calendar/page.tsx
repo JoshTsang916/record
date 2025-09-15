@@ -207,12 +207,16 @@ export default function CalendarPage() {
   )
 }
 
+import Link from 'next/link'
+
 function TaskChip({ task, onDragStart }: { task: Task, onDragStart: (e: React.DragEvent, id: string) => void }) {
   const color = useMemo(() => dueColor(task), [task])
   return (
-    <div draggable onDragStart={(e)=>onDragStart(e, task.id)} className={`text-[11px] px-2 py-1 rounded border ${color.border} ${color.bg} cursor-move truncate`} title={task.title}>
-      {task.title}
-    </div>
+    <Link href={{ pathname: `/tasks/${task.id}`, query: { path: task.file_path } }}>
+      <div draggable onDragStart={(e)=>onDragStart(e, task.id)} className={`text-[11px] px-2 py-1 rounded border ${color.border} ${color.bg} cursor-move truncate`} title={task.title}>
+        {task.title}
+      </div>
+    </Link>
   )
 }
 
