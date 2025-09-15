@@ -8,7 +8,7 @@ import { revalidateTag } from 'next/cache'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { id, title, tags, importance, status, transcript, summary } = body || {}
+    const { id, title, tags, importance, status, transcript, summary, project_id } = body || {}
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
     const hasGitHub = !!process.env.GITHUB_REPO && !!process.env.GITHUB_TOKEN
     const list = hasGitHub ? await readIndex() : devList()
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     file.frontmatter.importance = typeof importance === 'number' ? importance : file.frontmatter.importance
     file.frontmatter.status = status ?? file.frontmatter.status
     file.frontmatter.updated_at = nowIso
+    if (typeof project_id === 'string') (file.frontmatter as any).project_id = project_id
     file.frontmatter.summary = typeof summary === 'string' ? summary : file.frontmatter.summary
     if (typeof transcript === 'string') file.content = transcript
 

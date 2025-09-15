@@ -22,6 +22,8 @@ export default function IdeaDetailsPage() {
   const [audioUrl, setAudioUrl] = useState('')
   const [createdAt, setCreatedAt] = useState('')
   const [saving, setSaving] = useState(false)
+  const [projectId, setProjectId] = useState('')
+  const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
 
   useEffect(() => { load() }, [id])
   async function load() {
@@ -38,6 +40,14 @@ export default function IdeaDetailsPage() {
       setTranscript(j.file.content || '')
       setAudioUrl(fm.audio?.url || '')
       setCreatedAt(fm.created_at)
+      setProjectId(fm.project_id || '')
+      try {
+        const pr = await fetch('/api/projects/list', { cache: 'no-store' })
+        if (pr.ok) {
+          const pj = await pr.json()
+          setProjects((pj.items || []).map((x: any) => ({ id: x.id, title: x.title })))
+        }
+      } catch {}
     } catch (e: any) {
       setError(e?.message || 'Error')
     } finally {
@@ -51,7 +61,7 @@ export default function IdeaDetailsPage() {
     const res = await fetch('/api/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title, tags, importance, status, transcript })
+      body: JSON.stringify({ id, title, tags, importance, status, transcript, project_id: projectId })
     })
     if (!res.ok) {
       alert('儲存失敗')
@@ -84,6 +94,11 @@ export default function IdeaDetailsPage() {
       <div className="grid gap-3">
         <label className="text-sm">Title</label>
         <Input value={title} onChange={e => setTitle(e.target.value)} />
+        <label className="text-sm">專案</label>
+        <select value={projectId} onChange={e=>setProjectId(e.target.value)} className="h-10 rounded-md border px-3 text-sm w-64 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
+          <option value="">未指定</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+        </select>
         <label className="text-sm">標籤</label>
         <ChipsInput value={tags} onChange={setTags} placeholder="新增標籤，Enter/逗號確定" />
         <label className="text-sm">Importance (1..5)</label>

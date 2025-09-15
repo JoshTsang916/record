@@ -1,6 +1,6 @@
-import { INDEX_PATH } from './id'
-import { IndexRecord, IdeaFile } from './types'
-import { parseIdea, serializeIdea } from './markdown'
+import { INDEX_PATH, PROJECTS_INDEX_PATH, TASKS_INDEX_PATH } from './id'
+import { IndexRecord, IdeaFile, ProjectIndexRecord, TaskIndexRecord, ProjectFile, TaskFile } from './types'
+import { parseIdea, serializeIdea, parseProject, parseTask } from './markdown'
 
 function getRepo() {
   const repo = process.env.GITHUB_REPO
@@ -176,4 +176,32 @@ export async function rawUrlForPath(path: string): Promise<string> {
   const { owner, name } = getRepo()
   const branch = await getDefaultBranch()
   return `https://raw.githubusercontent.com/${owner}/${name}/${branch}/${path.replace(/^\//, '')}`
+}
+
+// Projects helpers
+export async function readProjectsIndex(): Promise<ProjectIndexRecord[]> {
+  const body = await getContent(PROJECTS_INDEX_PATH, undefined, { next: { revalidate: 15, tags: ['projects-index'] } })
+  return body ? JSON.parse(body) : []
+}
+export async function replaceProjectsIndex(list: ProjectIndexRecord[], message = 'chore(projects): update index') {
+  await commitFiles({ message, files: [{ path: PROJECTS_INDEX_PATH, content: JSON.stringify(list, null, 2) }] })
+}
+export async function readProjectFileByPath(path: string): Promise<ProjectFile> {
+  const body = await getContent(path)
+  if (!body) throw new Error('Project file not found')
+  return parseProject(body)
+}
+
+// Tasks helpers
+export async function readTasksIndex(): Promise<TaskIndexRecord[]> {
+  const body = await getContent(TASKS_INDEX_PATH, undefined, { next: { revalidate: 15, tags: ['tasks-index'] } })
+  return body ? JSON.parse(body) : []
+}
+export async function replaceTasksIndex(list: TaskIndexRecord[], message = 'chore(tasks): update index') {
+  await commitFiles({ message, files: [{ path: TASKS_INDEX_PATH, content: JSON.stringify(list, null, 2) }] })
+}
+export async function readTaskFileByPath(path: string): Promise<TaskFile> {
+  const body = await getContent(path)
+  if (!body) throw new Error('Task file not found')
+  return parseTask(body)
 }

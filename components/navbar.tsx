@@ -70,6 +70,7 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
           {/* 第三行（手機）：看板與主題切換 */}
           <div className="flex items-center gap-2">
             <Link href="/board"><Button variant="outline">看板</Button></Link>
+            <Link href="/projects"><Button variant="outline">專案</Button></Link>
             <Button variant="ghost" onClick={toggleTheme}>{dark ? '亮色' : '夜間'}</Button>
           </div>
         </div>
