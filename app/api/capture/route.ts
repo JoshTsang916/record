@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       const txt = form.get('text')
       const imp = form.get('importance')
       const st = form.get('status')
+      const pid = form.get('project_id')
       title = typeof t === 'string' ? t : ''
       tags = typeof tg === 'string' ? tg.split(',').map(s => s.trim()).filter(Boolean) : []
       wantTranscription = typeof wt === 'string' ? wt === 'true' : true
@@ -37,8 +38,11 @@ export async function POST(req: NextRequest) {
       textOnly = typeof txt === 'string' ? txt : ''
       if (typeof imp === 'string') importance = Number(imp) || 3
       if (typeof st === 'string') status = (['draft','curating','todo','done','archived'].includes(st) ? st : 'draft') as any
+      const projectId = typeof pid === 'string' ? pid : ''
       const a = form.get('audio')
       if (a && a instanceof File) audioFile = a
+      // attach to closure via adding property; we'll set in frontmatter below
+      ;(globalThis as any).__projectId = projectId
     } else {
       const json = await req.json()
       title = json.title || ''
@@ -48,6 +52,7 @@ export async function POST(req: NextRequest) {
       textOnly = json.text || ''
       if (json.importance) importance = Number(json.importance) || 3
       if (json.status) status = (['draft','curating','todo','done','archived'].includes(json.status) ? json.status : 'draft') as any
+      ;(globalThis as any).__projectId = typeof json.project_id === 'string' ? json.project_id : ''
       // audio is not supported in JSON body here
     }
 
@@ -89,6 +94,7 @@ export async function POST(req: NextRequest) {
       status: (status as any) || 'draft',
       importance: typeof importance === 'number' ? importance : 3,
       tags,
+      project_id: ((globalThis as any).__projectId || '') as any,
       audio: { url: '', duration_sec: durationSec },
       transcript: { model, confidence: conf },
       summary: '',

@@ -89,7 +89,12 @@ export default function IdeaDetailsPage() {
 
   return (
     <div className="container py-4 space-y-4">
-      <div className="text-sm text-gray-500">Created: {new Date(createdAt).toLocaleString()}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-500">Created: {new Date(createdAt).toLocaleString()}</div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => router.push('/')}>返回</Button>
+        </div>
+      </div>
       {/* 不顯示音訊播放器（僅存文字模式） */}
       <div className="grid gap-3">
         <label className="text-sm">Title</label>

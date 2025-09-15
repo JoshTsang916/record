@@ -34,8 +34,22 @@ export default function HomePage() {
   const [newImportance, setNewImportance] = useState<number>(3)
   const [newStatus, setNewStatus] = useState<'draft'|'curating'|'todo'|'done'>('draft')
   const [creating, setCreating] = useState(false)
+  const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
+  const [newProjectId, setNewProjectId] = useState('')
 
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (showTextModal) {
+      ;(async () => {
+        try {
+          const res = await fetch('/api/projects/list', { cache: 'no-store' })
+          if (res.ok) {
+            const j = await res.json(); setProjects((j.items || []).map((x: any) => ({ id: x.id, title: x.title })))
+          }
+        } catch {}
+      })()
+    }
+  }, [showTextModal])
   async function load() {
     const res = await fetch('/api/list')
     if (res.ok) {
@@ -82,10 +96,11 @@ export default function HomePage() {
     fd.append('wantTranscription', 'false')
     fd.append('importance', String(newImportance))
     fd.append('status', newStatus)
+    if (newProjectId) fd.append('project_id', newProjectId)
     const res = await fetch('/api/capture', { method: 'POST', body: fd })
     if (res.ok) {
       setShowTextModal(false)
-      setNewText(''); setNewTitle(''); setNewTags([])
+      setNewText(''); setNewTitle(''); setNewTags([]); setNewProjectId('')
       await load()
     } else {
       try { const j = await res.json(); alert(j?.error || 'Save failed') } catch { alert('Save failed') }
@@ -183,6 +198,11 @@ export default function HomePage() {
             <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" />
             <Textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Write your idea..." />
             <ChipsInput value={newTags} onChange={setNewTags} placeholder="新增標籤，Enter/逗號確定" />
+            <label className="text-sm">專案</label>
+            <select value={newProjectId} onChange={e=>setNewProjectId(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700">
+              <option value="">未指定</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+            </select>
             <div className="flex items-center gap-2">
               <label className="text-sm">重要性</label>
               <input type="number" min={1} max={5} value={newImportance} onChange={e => setNewImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24 dark:bg-gray-900 dark:border-gray-700" />

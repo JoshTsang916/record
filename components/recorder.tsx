@@ -16,10 +16,23 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
   const timerRef = useRef<any>(null)
+  const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
+  const [projectId, setProjectId] = useState('')
 
   useEffect(() => {
     if (!open) {
       cleanup()
+    }
+    if (open) {
+      // load projects
+      ;(async () => {
+        try {
+          const res = await fetch('/api/projects/list', { cache: 'no-store' })
+          if (res.ok) {
+            const j = await res.json(); setProjects((j.items || []).map((x: any) => ({ id: x.id, title: x.title })))
+          }
+        } catch {}
+      })()
     }
   }, [open])
 
@@ -67,6 +80,7 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
     fd.append('durationSec', String(duration))
     fd.append('importance', String(importance))
     fd.append('status', status)
+    if (projectId) fd.append('project_id', projectId)
     try {
       const res = await fetch('/api/capture', { method: 'POST', body: fd })
       if (!res.ok) {
@@ -130,6 +144,11 @@ export default function RecorderModal({ open, onClose, onSaved }: { open: boolea
               <option value="done">完成</option>
             </select>
           </div>
+          <label className="text-sm">專案</label>
+          <select value={projectId} onChange={e=>setProjectId(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700">
+            <option value="">未指定</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+          </select>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={transcribe} onChange={e => setTranscribe(e.target.checked)} /> Transcribe</label>
           <div className="text-sm text-gray-600">Duration: {duration}s</div>
           {error ? <div className="text-sm text-red-600">{error}</div> : null}
