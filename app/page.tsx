@@ -222,6 +222,27 @@ export default function HomePage() {
                       <div className="text-xs text-gray-500">{new Date(it.created_at).toLocaleString()}</div>
                     </div>
                     <div className="shrink-0 flex gap-1">
+                      <button
+                        title="轉為任務"
+                        onClick={async (e) => {
+                          e.preventDefault(); e.stopPropagation();
+                          try {
+                            // 讀取完整內容與 project_id
+                            const rr = await fetch(`/api/read?path=${encodeURIComponent(it.file_path)}`)
+                            if (!rr.ok) throw new Error('讀取內容失敗')
+                            const data = await rr.json()
+                            const fm = data.file.frontmatter || {}
+                            const body: any = { title: it.title || it.id, description: data.file.content || '', project_id: fm.project_id || '', priority: it.importance || 3, tags: it.tags || [], status: it.status === 'done' ? 'done' : (it.status === 'todo' ? 'todo' : 'backlog') }
+                            const res = await fetch('/api/tasks/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                            if (!res.ok) throw new Error('建立任務失敗')
+                            if (confirm('任務已建立，是否封存此靈感？')) {
+                              await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'archived' }) })
+                            }
+                            await load()
+                          } catch (err: any) { alert(err?.message || '轉換失敗') }
+                        }}
+                        className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                      >轉任務</button>
                       {it.status !== 'archived' ? (
                         <button
                           title="封存"
@@ -266,7 +287,7 @@ export default function HomePage() {
             </Link>
           ))}
           {(view==='tasks' || view==='all') && filteredTasks.map(t => (
-            <Link key={t.id} href={t.project_id ? `/projects/${t.project_id}` : '/projects'}>
+            <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
               <Card className="hover:shadow-md transition">
                 <CardHeader>
                   <div className="font-medium break-words whitespace-pre-wrap">{t.title}</div>
