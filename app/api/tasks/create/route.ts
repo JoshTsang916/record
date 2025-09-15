@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       const list = await readTasksIndex()
       const record: TaskIndexRecord = {
         id, project_id: fm.project_id, title: fm.title, status: fm.status, priority: fm.priority, position: fm.position,
-        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, file_path: mdPath
+        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, due_date: fm.due_date, file_path: mdPath
       }
       const next = [record, ...list.filter(x => x.id !== id)]
       await commitFiles({ message: `feat(task): add ${id} - ${fm.title}`, files: [
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     } else {
       const record: TaskIndexRecord = {
         id, project_id: fm.project_id, title: fm.title, status: fm.status, priority: fm.priority, position: fm.position,
-        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, file_path: mdPath
+        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, due_date: fm.due_date, file_path: mdPath
       }
       devTasksAdd(mdPath, { frontmatter: fm, content: body.content || '' }, record)
     }
@@ -55,4 +55,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }
 }
-

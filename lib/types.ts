@@ -94,6 +94,7 @@ export interface TaskIndexRecord {
   tags: string[]
   created_at: string
   updated_at: string
+  due_date?: string
   file_path: string
 }
 export interface TaskFile {

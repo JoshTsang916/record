@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const md = serializeTask(file)
     const idx = list.findIndex(x => x.id === id)
     if (idx !== -1) {
-      list[idx] = { ...list[idx], title: file.frontmatter.title, status: file.frontmatter.status, priority: file.frontmatter.priority, position: file.frontmatter.position, tags: file.frontmatter.tags, updated_at: nowIso, project_id: file.frontmatter.project_id }
+      list[idx] = { ...list[idx], title: file.frontmatter.title, status: file.frontmatter.status, priority: file.frontmatter.priority, position: file.frontmatter.position, tags: file.frontmatter.tags, updated_at: nowIso, project_id: file.frontmatter.project_id, due_date: file.frontmatter.due_date }
     }
     if (hasGitHub) {
       await commitFiles({ message: `feat(task): update ${id} - ${file.frontmatter.title}`,
@@ -46,4 +46,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }
 }
-
