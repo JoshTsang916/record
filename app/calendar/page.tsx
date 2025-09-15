@@ -207,8 +207,6 @@ export default function CalendarPage() {
   )
 }
 
-import Link from 'next/link'
-
 function TaskChip({ task, onDragStart }: { task: Task, onDragStart: (e: React.DragEvent, id: string) => void }) {
   const color = useMemo(() => dueColor(task), [task])
   return (
