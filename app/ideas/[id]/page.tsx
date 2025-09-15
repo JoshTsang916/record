@@ -24,6 +24,7 @@ export default function IdeaDetailsPage() {
   const [saving, setSaving] = useState(false)
   const [projectId, setProjectId] = useState('')
   const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
+  const [converting, setConverting] = useState(false)
 
   useEffect(() => { load() }, [id])
   async function load() {
@@ -84,6 +85,41 @@ export default function IdeaDetailsPage() {
     }
   }
 
+  function ideaToTaskStatus(s: string): 'backlog'|'todo'|'in_progress'|'blocked'|'done' {
+    switch (s) {
+      case 'todo': return 'todo'
+      case 'done': return 'done'
+      case 'curating': return 'backlog'
+      case 'draft': return 'backlog'
+      default: return 'backlog'
+    }
+  }
+
+  async function convertToTask() {
+    if (converting) return
+    setConverting(true)
+    try {
+      const body: any = {
+        project_id: projectId || '',
+        title,
+        description: transcript,
+        priority: importance,
+        tags,
+        status: ideaToTaskStatus(status)
+      }
+      const res = await fetch('/api/tasks/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!res.ok) { alert('轉為任務失敗'); return }
+      const doArchive = confirm('任務已建立。要封存此靈感嗎？')
+      if (doArchive) {
+        await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: 'archived' }) })
+      }
+      // 若有專案則導向專案頁
+      if (projectId) router.push(`/projects/${projectId}`)
+    } finally {
+      setConverting(false)
+    }
+  }
+
   if (loading) return <div className="p-4">Loading...</div>
   if (error) return <div className="p-4 text-red-600">{error}</div>
 
@@ -121,6 +157,7 @@ export default function IdeaDetailsPage() {
       </div>
       <div className="flex gap-2">
         <Button onClick={save} disabled={saving}>{saving ? '儲存中…' : '儲存'}</Button>
+        <Button onClick={convertToTask} disabled={converting}>{converting ? '轉換中…' : '轉為任務'}</Button>
         <Button variant="outline" onClick={onDelete}>刪除</Button>
       </div>
     </div>

@@ -19,14 +19,31 @@ type Item = {
   file_path: string
 }
 
+type TaskItem = {
+  id: string
+  project_id: string
+  title: string
+  created_at: string
+  updated_at: string
+  tags: string[]
+  status: 'backlog'|'todo'|'in_progress'|'blocked'|'done'|'archived'
+  priority: number
+  due_date?: string
+  file_path: string
+}
+
 export default function HomePage() {
   const [items, setItems] = useState<Item[]>([])
+  const [tasks, setTasks] = useState<TaskItem[]>([])
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const [tag, setTag] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [taskStatusFilter, setTaskStatusFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [sortBy, setSortBy] = useState<'newest'|'importance'>('newest')
+  const [taskSortBy, setTaskSortBy] = useState<'newest'|'priority'>('newest')
+  const [view, setView] = useState<'ideas'|'tasks'|'all'>('ideas')
   const [showTextModal, setShowTextModal] = useState(false)
   const [newText, setNewText] = useState('')
   const [newTitle, setNewTitle] = useState('')
@@ -56,10 +73,16 @@ export default function HomePage() {
       const j = await res.json()
       setItems(j.items || [])
     }
+    const rt = await fetch('/api/tasks/list?include_done=true', { cache: 'no-store' })
+    if (rt.ok) { const j = await rt.json(); setTasks(j.items || []) }
   }
 
-  const tags = useMemo(() => Array.from(new Set(items.flatMap(i => i.tags))).sort(), [items])
-  const filtered = useMemo(() => {
+  const tags = useMemo(() => {
+    const pool: any[] = view === 'ideas' ? items : view === 'tasks' ? tasks : ([] as any[]).concat(items as any, tasks as any)
+    return Array.from(new Set(pool.flatMap((i: any) => i.tags || []))).sort()
+  }, [items, tasks, view])
+
+  const filteredIdeas = useMemo(() => {
     let arr = items.filter(i => {
       const matchQ = !q || (i.title?.toLowerCase().includes(q.toLowerCase()))
       const matchTag = !tag || i.tags.includes(tag)
@@ -69,13 +92,37 @@ export default function HomePage() {
     })
     if (sortBy === 'importance') arr = [...arr].sort((a, b) => (b.importance - a.importance) || b.created_at.localeCompare(a.created_at))
     return arr
-  }, [items, q, tag, statusFilter, sortBy])
+  }, [items, q, tag, statusFilter, sortBy, showArchived])
+
+  const filteredTasks = useMemo(() => {
+    let arr = tasks.filter(t => {
+      const matchQ = !q || (t.title?.toLowerCase().includes(q.toLowerCase()))
+      const matchTag = !tag || (t.tags || []).includes(tag)
+      const matchStatus = !taskStatusFilter || t.status === (taskStatusFilter as any)
+      return matchQ && matchTag && matchStatus
+    })
+    if (taskSortBy === 'priority') arr = [...arr].sort((a,b)=> (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
+    else arr = [...arr].sort((a,b)=> b.created_at.localeCompare(a.created_at))
+    return arr
+  }, [tasks, q, tag, taskStatusFilter, taskSortBy])
 
   function statusZh(s: string) {
     switch (s) {
       case 'draft': return '草稿'
       case 'curating': return '整理中'
       case 'todo': return '待辦'
+      case 'done': return '完成'
+      case 'archived': return '封存'
+      default: return s
+    }
+  }
+
+  function taskStatusZh(s: string) {
+    switch (s) {
+      case 'backlog': return '待規劃'
+      case 'todo': return '待做'
+      case 'in_progress': return '進行中'
+      case 'blocked': return '受阻'
       case 'done': return '完成'
       case 'archived': return '封存'
       default: return s
@@ -113,29 +160,59 @@ export default function HomePage() {
       <Navbar onRecordClick={() => setOpen(true)} onNewText={() => setShowTextModal(true)} />
       <div className="container py-4 space-y-4">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          <Input placeholder="Search ideas" value={q} onChange={e => setQ(e.target.value)} className="w-full sm:flex-1" />
-          <select value={statusFilter} onChange={e => { const v = e.target.value; setStatusFilter(v); if (v==='archived') setShowArchived(true) }} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
-            <option value="">所有狀態</option>
-            <option value="draft">草稿</option>
-            <option value="curating">整理中</option>
-            <option value="todo">待辦</option>
-            <option value="done">完成</option>
-            <option value="archived">封存</option>
-          </select>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-            <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} /> 顯示封存
-          </label>
+          <Input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} className="w-full sm:flex-1" />
+          <div className="flex rounded-md border overflow-hidden">
+            <button className={`px-3 text-sm ${view==='ideas'?'bg-black text-white dark:bg-gray-800':'bg-white dark:bg-gray-900'}`} onClick={()=>setView('ideas')}>Ideas</button>
+            <button className={`px-3 text-sm ${view==='tasks'?'bg-black text-white dark:bg-gray-800':'bg-white dark:bg-gray-900'}`} onClick={()=>setView('tasks')}>Tasks</button>
+            <button className={`px-3 text-sm ${view==='all'?'bg-black text-white dark:bg-gray-800':'bg-white dark:bg-gray-900'}`} onClick={()=>setView('all')}>All</button>
+          </div>
+          {view==='ideas' && (
+            <>
+              <select value={statusFilter} onChange={e => { const v = e.target.value; setStatusFilter(v); if (v==='archived') setShowArchived(true) }} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
+                <option value="">所有狀態</option>
+                <option value="draft">草稿</option>
+                <option value="curating">整理中</option>
+                <option value="todo">待辦</option>
+                <option value="done">完成</option>
+                <option value="archived">封存</option>
+              </select>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} /> 顯示封存
+              </label>
+            </>
+          )}
+          {view==='tasks' && (
+            <>
+              <select value={taskStatusFilter} onChange={e => setTaskStatusFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
+                <option value="">所有任務狀態</option>
+                <option value="backlog">待規劃</option>
+                <option value="todo">待做</option>
+                <option value="in_progress">進行中</option>
+                <option value="blocked">受阻</option>
+                <option value="done">完成</option>
+                <option value="archived">封存</option>
+              </select>
+            </>
+          )}
           <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
             <option value="">All tags</option>
             {tags.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
-            <option value="newest">最新優先</option>
-            <option value="importance">重要性優先</option>
-          </select>
+          {view==='ideas' && (
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
+              <option value="newest">最新優先</option>
+              <option value="importance">重要性優先</option>
+            </select>
+          )}
+          {view==='tasks' && (
+            <select value={taskSortBy} onChange={e => setTaskSortBy(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
+              <option value="newest">最新優先</option>
+              <option value="priority">優先度優先</option>
+            </select>
+          )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(it => (
+          {(view==='ideas' || view==='all') && filteredIdeas.map(it => (
             <Link key={it.id} href={{ pathname: `/ideas/${it.id}`, query: { path: it.file_path } }}>
               <Card className="hover:shadow-md transition">
                 <CardHeader>
@@ -179,6 +256,28 @@ export default function HomePage() {
                         >
                           {t}
                         </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-500">Tags:</div>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+          {(view==='tasks' || view==='all') && filteredTasks.map(t => (
+            <Link key={t.id} href={t.project_id ? `/projects/${t.project_id}` : '/projects'}>
+              <Card className="hover:shadow-md transition">
+                <CardHeader>
+                  <div className="font-medium break-words whitespace-pre-wrap">{t.title}</div>
+                  <div className="text-xs text-gray-500">{new Date(t.created_at).toLocaleString()}</div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">優先度：{t.priority}・狀態：{taskStatusZh(t.status)}{t.due_date ? `・到期：${t.due_date}` : ''}</div>
+                  {(t.tags||[]).length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {t.tags.map(tagName => (
+                        <span key={tagName} className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-[10px] px-2 py-0.5">{tagName}</span>
                       ))}
                     </div>
                   ) : (
