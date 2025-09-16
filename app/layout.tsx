@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import Navbar from '@/components/navbar'
 import { ToastProvider } from '@/components/toast'
+import FocusBar from '@/components/focus-bar'
 
 export const metadata: Metadata = {
   title: 'Idea Vault',
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col">
         <ToastProvider>
           <Navbar />
+          <FocusBar />
           {children}
         </ToastProvider>
       </body>
