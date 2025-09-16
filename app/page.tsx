@@ -91,6 +91,20 @@ export default function HomePage() {
     }
   }
 
+  async function reloadTasksUntilMissing(missingId: string, attempts = 3) {
+    for (let i = 0; i < attempts; i++) {
+      const rt = await fetch('/api/tasks/list?include_done=true', { cache: 'no-store' })
+      if (rt.ok) {
+        const j = await rt.json()
+        const arr: TaskItem[] = j.items || []
+        const exists = arr.some(x => x.id === missingId)
+        setTasks(arr)
+        if (!exists) return
+      }
+      await new Promise(r => setTimeout(r, 250 * (i + 1)))
+    }
+  }
+
   const tags = useMemo(() => {
     const pool: any[] = view === 'ideas' ? items : view === 'tasks' ? tasks : ([] as any[]).concat(items as any, tasks as any)
     return Array.from(new Set(pool.flatMap((i: any) => i.tags || []))).sort()
@@ -338,8 +352,31 @@ export default function HomePage() {
             <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
               <Card className="hover:shadow-md transition">
                 <CardHeader>
-                  <div className="font-medium break-words whitespace-pre-wrap">{t.title}</div>
-                  <div className="text-xs text-gray-500">{new Date(t.created_at).toLocaleString()}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium break-words whitespace-pre-wrap">{t.title}</div>
+                      <div className="text-xs text-gray-500">{new Date(t.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="shrink-0 flex gap-1">
+                      <button
+                        title="刪除任務"
+                        onClick={async (e) => {
+                          e.preventDefault(); e.stopPropagation();
+                          if (!confirm('確定要刪除此任務嗎？此動作無法復原。')) return;
+                          const prev = tasks
+                          setTasks(curr => curr.filter(x => x.id !== t.id))
+                          const res = await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, file_path: t.file_path }) })
+                          if (!res.ok) {
+                            setTasks(prev)
+                            try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') }
+                          } else {
+                            await reloadTasksUntilMissing(t.id)
+                          }
+                        }}
+                        className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                      >刪除</button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-gray-600 dark:text-gray-300">優先度：{t.priority}・狀態：{taskStatusZh(t.status)}{t.due_date ? `・到期：${t.due_date}` : ''}</div>
