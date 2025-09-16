@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useMemo, useState } from 'react'
-import Navbar from '@/components/navbar'
+// Navbar is included globally in layout
 import RecorderModal from '@/components/recorder'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import Link from 'next/link'
@@ -67,6 +67,20 @@ export default function HomePage() {
       })()
     }
   }, [showTextModal])
+  useEffect(() => {
+    const onOpenText = () => setShowTextModal(true)
+    const onOpenRecord = () => setOpen(true)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('open-new-text' as any, onOpenText)
+      window.addEventListener('open-record' as any, onOpenRecord)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('open-new-text' as any, onOpenText)
+        window.removeEventListener('open-record' as any, onOpenRecord)
+      }
+    }
+  }, [])
   async function load() {
     const res = await fetch('/api/list', { cache: 'no-store' })
     if (res.ok) {
@@ -185,7 +199,7 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <Navbar onRecordClick={() => setOpen(true)} onNewText={() => setShowTextModal(true)} />
+      {/* Navbar moved to global layout; buttons still work via custom events */}
       <div className="container py-4 space-y-4">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
           <Input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} className="w-full sm:flex-1" />
@@ -358,6 +372,16 @@ export default function HomePage() {
                       <div className="text-xs text-gray-500">{new Date(t.created_at).toLocaleString()}</div>
                     </div>
                     <div className="shrink-0 flex gap-1">
+                      <button
+                        title="完成"
+                        onClick={async (e) => {
+                          e.preventDefault(); e.stopPropagation();
+                          setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: 'done' } : x))
+                          const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, status: 'done' }) })
+                          if (!res.ok) await load()
+                        }}
+                        className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                      >完成</button>
                       <button
                         title="刪除任務"
                         onClick={async (e) => {

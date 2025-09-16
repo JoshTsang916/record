@@ -156,7 +156,6 @@ export default function CalendarPage() {
           <option value="in_progress">進行中</option>
           <option value="blocked">受阻</option>
           <option value="done">完成</option>
-          <option value="archived">封存</option>
         </select>
         <select value={tagFilter} onChange={e=>setTagFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
           <option value="">所有標籤</option>

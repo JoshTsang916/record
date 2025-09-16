@@ -63,8 +63,8 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* 第二行（手機）：新增/錄音/重試 */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" onClick={onNewText}>New (text)</Button>
-            <Button onClick={onRecordClick}>Record</Button>
+            <Button variant="outline" onClick={() => { if (onNewText) onNewText(); else if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-new-text')) }}>New (text)</Button>
+            <Button onClick={() => { if (onRecordClick) onRecordClick(); else if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-record')) }}>Record</Button>
             <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>
           </div>
           {/* 第三行（手機）：看板與主題切換 */}

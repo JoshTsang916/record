@@ -115,7 +115,6 @@ export default function TaskDetailsPage() {
             <option value="in_progress">進行中</option>
             <option value="blocked">受阻</option>
             <option value="done">完成</option>
-            <option value="archived">封存</option>
           </select>
           <label className="text-sm">截止日</label>
           <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
@@ -130,4 +129,3 @@ export default function TaskDetailsPage() {
     </div>
   )
 }
-
