@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/toast'
 import Link from 'next/link'
 
 type Project = {
@@ -39,6 +40,7 @@ export default function ProjectDetailPage() {
   const [saving, setSaving] = useState(false)
   const [creatingTask, setCreatingTask] = useState(false)
   const [includeDone, setIncludeDone] = useState(true)
+  const { show } = useToast()
 
   useEffect(() => { load() }, [id, includeDone])
   async function load() {
@@ -83,17 +85,28 @@ export default function ProjectDetailPage() {
   }
 
   async function completeTask(taskId: string) {
+    const target = tasks.find(x => x.id===taskId)
+    const prevStatus = target?.status || 'todo'
     setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: 'done' } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: 'done' }) })
     if (!res.ok) await load()
+    show({ message: `已完成：${target?.title || ''}`, actionLabel: '撤銷', onAction: async () => {
+      setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: prevStatus } : t))
+      await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: prevStatus }) })
+    } })
   }
 
   async function deleteTask(taskId: string) {
-    if (!confirm('確定要刪除此任務嗎？此動作無法復原。')) return
+    const target = tasks.find(x => x.id===taskId)
     const prev = tasks
     setTasks(curr => curr.filter(t => t.id !== taskId))
-    const res = await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId }) })
-    if (!res.ok) { setTasks(prev); await load() }
+    let canceled = false
+    const timer = setTimeout(async () => {
+      if (canceled) return
+      await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId }) })
+      await load()
+    }, 3000)
+    show({ message: `已刪除：${target?.title || ''}`, actionLabel: '撤銷', onAction: () => { canceled = true; clearTimeout(timer); setTasks(prev) }, duration: 3000 })
   }
 
   async function saveProject() {

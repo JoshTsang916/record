@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 // Navbar is included globally in layout
 import RecorderModal from '@/components/recorder'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { useToast } from '@/components/toast'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -44,6 +45,7 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<'newest'|'importance'>('newest')
   const [taskSortBy, setTaskSortBy] = useState<'newest'|'priority'>('newest')
   const [view, setView] = useState<'ideas'|'tasks'|'all'>('ideas')
+  const [hideCompleted, setHideCompleted] = useState(false)
   const [showTextModal, setShowTextModal] = useState(false)
   const [newText, setNewText] = useState('')
   const [newTitle, setNewTitle] = useState('')
@@ -53,6 +55,7 @@ export default function HomePage() {
   const [creating, setCreating] = useState(false)
   const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
   const [newProjectId, setNewProjectId] = useState('')
+  const { show } = useToast()
 
   useEffect(() => { load() }, [])
   useEffect(() => {
@@ -141,12 +144,13 @@ export default function HomePage() {
       const matchQ = !q || (t.title?.toLowerCase().includes(q.toLowerCase()))
       const matchTag = !tag || (t.tags || []).includes(tag)
       const matchStatus = !taskStatusFilter || t.status === (taskStatusFilter as any)
-      return matchQ && matchTag && matchStatus
+      const matchDone = hideCompleted ? t.status !== 'done' : true
+      return matchQ && matchTag && matchStatus && matchDone
     })
     if (taskSortBy === 'priority') arr = [...arr].sort((a,b)=> (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
     else arr = [...arr].sort((a,b)=> b.created_at.localeCompare(a.created_at))
     return arr
-  }, [tasks, q, tag, taskStatusFilter, taskSortBy])
+  }, [tasks, q, tag, taskStatusFilter, taskSortBy, hideCompleted])
 
   function statusZh(s: string) {
     switch (s) {
@@ -232,8 +236,10 @@ export default function HomePage() {
                 <option value="in_progress">進行中</option>
                 <option value="blocked">受阻</option>
                 <option value="done">完成</option>
-                <option value="archived">封存</option>
               </select>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} /> 隱藏已完成
+              </label>
             </>
           )}
           <select value={tag} onChange={e => setTag(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
@@ -364,7 +370,7 @@ export default function HomePage() {
           ))}
           {(view==='tasks' || view==='all') && filteredTasks.map(t => (
             <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
-              <Card className="hover:shadow-md transition">
+              <Card className={`hover:shadow-md transition ${t.status==='done' ? 'opacity-60' : ''}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -376,9 +382,14 @@ export default function HomePage() {
                         title="完成"
                         onClick={async (e) => {
                           e.preventDefault(); e.stopPropagation();
+                          const prevStatus = t.status
                           setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: 'done' } : x))
                           const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, status: 'done' }) })
                           if (!res.ok) await load()
+                          show({ message: `已完成：${t.title}`, actionLabel: '撤銷', onAction: async () => {
+                            setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: prevStatus } : x))
+                            await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, status: prevStatus }) })
+                          } })
                         }}
                         className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                       >完成</button>
@@ -386,16 +397,20 @@ export default function HomePage() {
                         title="刪除任務"
                         onClick={async (e) => {
                           e.preventDefault(); e.stopPropagation();
-                          if (!confirm('確定要刪除此任務嗎？此動作無法復原。')) return;
+                          // delayed commit with undo
                           const prev = tasks
                           setTasks(curr => curr.filter(x => x.id !== t.id))
-                          const res = await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, file_path: t.file_path }) })
-                          if (!res.ok) {
-                            setTasks(prev)
-                            try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') }
-                          } else {
+                          let canceled = false
+                          const timer = setTimeout(async () => {
+                            if (canceled) return
+                            await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, file_path: t.file_path }) })
                             await reloadTasksUntilMissing(t.id)
-                          }
+                          }, 3000)
+                          show({ message: `已刪除：${t.title}`, actionLabel: '撤銷', onAction: () => {
+                            canceled = true
+                            clearTimeout(timer)
+                            setTasks(prev)
+                          }, duration: 3000 })
                         }}
                         className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                       >刪除</button>

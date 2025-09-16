@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
+import { useToast } from '@/components/toast'
 import { Button } from '@/components/ui/button'
 
 type Task = {
@@ -31,6 +32,8 @@ export default function CalendarPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [tagFilter, setTagFilter] = useState('')
   const [loading, setLoading] = useState(false)
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
+  const { show } = useToast()
 
   const { startDate, endDate, days } = useMemo(() => makeMonth(yearMonth.y, yearMonth.m), [yearMonth])
 
@@ -119,6 +122,11 @@ export default function CalendarPage() {
     setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'done' }) })
     if (!res.ok) await load()
+    show({ message: `已完成：${task.title}`, actionLabel: '撤銷', onAction: async () => {
+      setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo' } : t))
+      setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo' } : t))
+      await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'todo' }) })
+    } })
   }
 
   async function deleteTask(task: Task) {
@@ -127,8 +135,13 @@ export default function CalendarPage() {
     const prevNoDate = noDateTasks
     setTasks(curr => curr.filter(t => t.id !== task.id))
     setNoDateTasks(curr => curr.filter(t => t.id !== task.id))
-    const res = await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, file_path: task.file_path }) })
-    if (!res.ok) { setTasks(prevTasks); setNoDateTasks(prevNoDate); await load() }
+    let canceled = false
+    const timer = setTimeout(async () => {
+      if (canceled) return
+      await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, file_path: task.file_path }) })
+      await load()
+    }, 3000)
+    show({ message: `已刪除：${task.title}`, actionLabel: '撤銷', onAction: () => { canceled = true; clearTimeout(timer); setTasks(prevTasks); setNoDateTasks(prevNoDate) }, duration: 3000 })
   }
 
   return (
@@ -193,10 +206,15 @@ export default function CalendarPage() {
                 >+ 任務</button>
               </div>
               <div className="flex flex-col gap-1">
-                {list.slice(0, 4).map(t => (
+                {(expandedDays.has(key) ? list : list.slice(0, 4)).map(t => (
                   <TaskChip key={t.id} task={t} onDragStart={onDragStart} onComplete={completeTask} onDelete={deleteTask} />
                 ))}
-                {list.length > 4 && <div className="text-[11px] text-gray-500">+{list.length - 4} more</div>}
+                {list.length > 4 && !expandedDays.has(key) && (
+                  <button className="text-[11px] text-blue-600 dark:text-blue-400 underline w-fit" onClick={()=>setExpandedDays(s => new Set(s).add(key))}>+{list.length - 4} more</button>
+                )}
+                {expandedDays.has(key) && list.length > 4 && (
+                  <button className="text-[11px] text-blue-600 dark:text-blue-400 underline w-fit" onClick={()=>setExpandedDays(s => { const n = new Set(s); n.delete(key); return n })}>收合</button>
+                )}
               </div>
             </div>
           )
