@@ -112,6 +112,23 @@ export default function CalendarPage() {
     }
   }
 
+  async function completeTask(task: Task) {
+    setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
+    setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
+    const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'done' }) })
+    if (!res.ok) await load()
+  }
+
+  async function deleteTask(task: Task) {
+    if (!confirm('確定要刪除此任務嗎？此動作無法復原。')) return
+    const prevTasks = tasks
+    const prevNoDate = noDateTasks
+    setTasks(curr => curr.filter(t => t.id !== task.id))
+    setNoDateTasks(curr => curr.filter(t => t.id !== task.id))
+    const res = await fetch('/api/tasks/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, file_path: task.file_path }) })
+    if (!res.ok) { setTasks(prevTasks); setNoDateTasks(prevNoDate); await load() }
+  }
+
   return (
     <div className="container py-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -176,7 +193,7 @@ export default function CalendarPage() {
               </div>
               <div className="flex flex-col gap-1">
                 {list.slice(0, 4).map(t => (
-                  <TaskChip key={t.id} task={t} onDragStart={onDragStart} />
+                  <TaskChip key={t.id} task={t} onDragStart={onDragStart} onComplete={completeTask} onDelete={deleteTask} />
                 ))}
                 {list.length > 4 && <div className="text-[11px] text-gray-500">+{list.length - 4} more</div>}
               </div>
@@ -197,7 +214,7 @@ export default function CalendarPage() {
         <div className="text-sm font-medium mb-2">無日期（拖曳任務到此以清除截止日）</div>
         <div className="flex flex-wrap gap-2">
           {noDateTasks.map(t => (
-            <TaskChip key={t.id} task={t} onDragStart={onDragStart} />
+            <TaskChip key={t.id} task={t} onDragStart={onDragStart} onComplete={completeTask} onDelete={deleteTask} />
           ))}
           {noDateTasks.length === 0 && <div className="text-xs text-gray-500">目前沒有無日期任務</div>}
         </div>
@@ -207,14 +224,18 @@ export default function CalendarPage() {
   )
 }
 
-function TaskChip({ task, onDragStart }: { task: Task, onDragStart: (e: React.DragEvent, id: string) => void }) {
+function TaskChip({ task, onDragStart, onComplete, onDelete }: { task: Task, onDragStart: (e: React.DragEvent, id: string) => void, onComplete: (t: Task) => void, onDelete: (t: Task) => void }) {
   const color = useMemo(() => dueColor(task), [task])
   return (
-    <Link href={{ pathname: `/tasks/${task.id}`, query: { path: task.file_path } }}>
-      <div draggable onDragStart={(e)=>onDragStart(e, task.id)} className={`text-[11px] px-2 py-1 rounded border ${color.border} ${color.bg} cursor-move truncate`} title={task.title}>
+    <div draggable onDragStart={(e)=>onDragStart(e, task.id)} className={`text-[11px] px-2 py-1 rounded border ${color.border} ${color.bg} cursor-move truncate flex items-center justify-between gap-1`} title={task.title}>
+      <Link href={{ pathname: `/tasks/${task.id}`, query: { path: task.file_path } }} className="truncate flex-1 hover:underline">
         {task.title}
-      </div>
-    </Link>
+      </Link>
+      <span className="shrink-0 inline-flex gap-1">
+        <button title="完成" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); onComplete(task) }} className="px-1 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">✓</button>
+        <button title="刪除" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); onDelete(task) }} className="px-1 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">🗑</button>
+      </span>
+    </div>
   )
 }
 
