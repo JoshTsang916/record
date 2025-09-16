@@ -21,6 +21,7 @@ type Session = {
   durationSec: number
   pausedAt?: number
   pausedAccumSec: number
+  rerollUsed?: boolean
 }
 
 export default function FocusBar() {
@@ -28,6 +29,7 @@ export default function FocusBar() {
   const [session, setSession] = useState<Session | null>(null)
   const [remaining, setRemaining] = useState<number>(0)
   const tRef = useRef<any>(null)
+  const notifiedRef = useRef(false)
 
   // restore
   useEffect(() => {
@@ -51,9 +53,19 @@ export default function FocusBar() {
   function startTimer() {
     clearTimer()
     tRef.current = setInterval(() => {
-      setRemaining(calcRemaining(session!))
+      const rem = calcRemaining(session!)
+      setRemaining(rem)
+      if (rem === 0 && !notifiedRef.current) {
+        notifiedRef.current = true
+        onTimeUp()
+      }
     }, 1000)
-    setRemaining(calcRemaining(session!))
+    const rem0 = calcRemaining(session!)
+    setRemaining(rem0)
+    if (rem0 === 0 && !notifiedRef.current) {
+      notifiedRef.current = true
+      onTimeUp()
+    }
   }
 
   function calcRemaining(s: Session) {
@@ -67,6 +79,8 @@ export default function FocusBar() {
     setSession(next)
     if (next) localStorage.setItem('focusSession', JSON.stringify(next))
     else localStorage.removeItem('focusSession')
+    // reset time-up notification when session changes
+    notifiedRef.current = false
   }
 
   async function drawAndStart() {
@@ -85,12 +99,39 @@ export default function FocusBar() {
         project_id: pick.project_id,
         startedAt: Date.now(),
         durationSec: 40 * 60,
-        pausedAccumSec: 0
+        pausedAccumSec: 0,
+        rerollUsed: false
       }
       persist(s)
       show({ message: `已開始專注：${pick.title}` })
     } catch (e: any) {
       show({ message: e?.message || '抽卡失敗' })
+    }
+  }
+
+  async function rerollOnce() {
+    if (!session || session.rerollUsed) return
+    try {
+      const res = await fetch('/api/tasks/list', { cache: 'no-store' })
+      if (!res.ok) throw new Error('讀取任務失敗')
+      const j = await res.json()
+      const pool: Task[] = (j.items || []).filter((t: any) => t.status !== 'blocked' && t.id !== session.taskId)
+      if (!pool.length) { show({ message: '沒有其他可抽任務' }); return }
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      const s: Session = {
+        taskId: pick.id,
+        taskTitle: pick.title,
+        file_path: pick.file_path,
+        project_id: pick.project_id,
+        startedAt: Date.now(),
+        durationSec: 40 * 60,
+        pausedAccumSec: 0,
+        rerollUsed: true
+      }
+      persist(s)
+      show({ message: `重新抽取：${pick.title}` })
+    } catch (e: any) {
+      show({ message: e?.message || '重抽失敗' })
     }
   }
 
@@ -122,6 +163,28 @@ export default function FocusBar() {
     }
   }
 
+  function playBeep() {
+    try {
+      const ctx = new (window as any).AudioContext()
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.type = 'sine'; o.frequency.value = 880
+      o.connect(g); g.connect(ctx.destination)
+      g.gain.setValueAtTime(0.0001, ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01)
+      o.start()
+      setTimeout(() => { g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2); o.stop(); ctx.close() }, 400)
+    } catch {}
+  }
+
+  function onTimeUp() {
+    playBeep()
+    show({ message: `時間到：${session?.taskTitle || ''}`, actionLabel: '延長 5 分鐘', onAction: () => {
+      if (!session) return
+      persist({ ...session, durationSec: session.durationSec + 300 })
+    } })
+  }
+
   // global trigger
   useEffect(() => {
     const onFocus = () => drawAndStart()
@@ -141,6 +204,7 @@ export default function FocusBar() {
           <Link href={{ pathname: `/tasks/${session.taskId}`, query: { path: session.file_path } }} className="truncate hover:underline">{session.taskTitle}</Link>
         </div>
         <div className="flex items-center gap-2">
+          {!session.rerollUsed && <button onClick={rerollOnce} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">重抽一次</button>}
           <button onClick={pauseResume} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{isPaused ? '繼續' : '暫停'}</button>
           <button onClick={complete} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
           <button onClick={cancel} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">取消</button>
@@ -149,4 +213,3 @@ export default function FocusBar() {
     </div>
   )
 }
-
