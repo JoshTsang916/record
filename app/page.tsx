@@ -68,13 +68,27 @@ export default function HomePage() {
     }
   }, [showTextModal])
   async function load() {
-    const res = await fetch('/api/list')
+    const res = await fetch('/api/list', { cache: 'no-store' })
     if (res.ok) {
       const j = await res.json()
       setItems(j.items || [])
     }
     const rt = await fetch('/api/tasks/list?include_done=true', { cache: 'no-store' })
     if (rt.ok) { const j = await rt.json(); setTasks(j.items || []) }
+  }
+
+  async function reloadUntilMissing(missingId: string, attempts = 3) {
+    for (let i = 0; i < attempts; i++) {
+      const res = await fetch('/api/list', { cache: 'no-store' })
+      if (res.ok) {
+        const j = await res.json()
+        const arr: Item[] = j.items || []
+        const exists = arr.some(x => x.id === missingId)
+        setItems(arr)
+        if (!exists) return
+      }
+      await new Promise(r => setTimeout(r, 250 * (i + 1)))
+    }
   }
 
   const tags = useMemo(() => {
@@ -246,19 +260,53 @@ export default function HomePage() {
                       {it.status !== 'archived' ? (
                         <button
                           title="封存"
-                          onClick={async (e) => { e.preventDefault(); e.stopPropagation(); const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'archived' }) }); if (!r.ok) { try { const j = await r.json(); alert(j?.error || '封存失敗') } catch { alert('封存失敗') } } await load() }}
+                          onClick={async (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            const prev = items
+                            setItems(curr => curr.map(x => x.id === it.id ? { ...x, status: 'archived' } : x))
+                            const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'archived' }) })
+                            if (!r.ok) {
+                              setItems(prev)
+                              try { const j = await r.json(); alert(j?.error || '封存失敗') } catch { alert('封存失敗') }
+                            } else {
+                              await load()
+                            }
+                          }}
                           className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                         >封存</button>
                       ) : (
                         <button
                           title="還原為草稿"
-                          onClick={async (e) => { e.preventDefault(); e.stopPropagation(); const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'draft' }) }); if (!r.ok) { try { const j = await r.json(); alert(j?.error || '還原失敗') } catch { alert('還原失敗') } } await load() }}
+                          onClick={async (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            const prev = items
+                            setItems(curr => curr.map(x => x.id === it.id ? { ...x, status: 'draft' } : x))
+                            const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, status: 'draft' }) })
+                            if (!r.ok) {
+                              setItems(prev)
+                              try { const j = await r.json(); alert(j?.error || '還原失敗') } catch { alert('還原失敗') }
+                            } else {
+                              await load()
+                            }
+                          }}
                           className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                         >還原</button>
                       )}
                       <button
                         title="刪除"
-                        onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (!confirm('確定要刪除這筆靈感嗎？此動作無法復原。')) return; const res = await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, file_path: it.file_path }) }); if (!res.ok) { try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') } } await load() }}
+                        onClick={async (e) => {
+                          e.preventDefault(); e.stopPropagation();
+                          if (!confirm('確定要刪除這筆靈感嗎？此動作無法復原。')) return;
+                          const prev = items
+                          setItems(curr => curr.filter(x => x.id !== it.id))
+                          const res = await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: it.id, file_path: it.file_path }) })
+                          if (!res.ok) {
+                            setItems(prev)
+                            try { const j = await res.json(); alert(j?.error || '刪除失敗') } catch { alert('刪除失敗') }
+                          } else {
+                            await reloadUntilMissing(it.id)
+                          }
+                        }}
                         className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                       >刪除</button>
                     </div>

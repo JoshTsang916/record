@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readIndex, readIdeaFileByPath } from '@/lib/github'
+import { withRetry } from '@/lib/utils'
 import { devList, devRead } from '@/lib/devStore'
 
 export async function GET(req: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json({ item, file })
     } else {
-      const list = hasGitHub ? await readIndex() : devList()
+    const list = hasGitHub ? await withRetry(() => readIndex(), 2) : devList()
       const item = list.find(x => x.id === id)
       if (!item) return NextResponse.json({ error: 'not found' }, { status: 404 })
       const file = hasGitHub ? await readIdeaFileByPath(item.file_path) : (devRead(item.file_path)!)
