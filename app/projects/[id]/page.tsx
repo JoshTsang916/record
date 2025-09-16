@@ -38,13 +38,14 @@ export default function ProjectDetailPage() {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [creatingTask, setCreatingTask] = useState(false)
+  const [includeDone, setIncludeDone] = useState(true)
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [id, includeDone])
   async function load() {
     const qs = path ? `?path=${encodeURIComponent(path)}` : `?id=${id}`
     const pr = await fetch(`/api/projects/read${qs}`, { cache: 'no-store' })
     if (pr.ok) { const j = await pr.json(); setItem(j.item); setFile(j.file) }
-    const tr = await fetch(`/api/tasks/list?project_id=${id}`, { cache: 'no-store' })
+    const tr = await fetch(`/api/tasks/list?project_id=${id}&include_done=${includeDone ? 'true' : 'false'}`, { cache: 'no-store' })
     if (tr.ok) { const j = await tr.json(); setTasks(j.items || []) }
   }
 
@@ -137,6 +138,7 @@ export default function ProjectDetailPage() {
             <Input placeholder="新增任務標題" value={newTaskTitle} onChange={e=>setNewTaskTitle(e.target.value)} />
             <Button onClick={createTask} disabled={creatingTask}>{creatingTask?'建立中…':'新增任務'}</Button>
           </div>
+          <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={includeDone} onChange={e=>setIncludeDone(e.target.checked)} /> 包含已完成</label>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -148,20 +150,20 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-3 flex flex-col gap-2">
               {(grouped as any)[col].map((t: Task) => (
-                <div key={t.id} draggable onDragStart={(e)=>onDragStart(e, t.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${t.status==='done' ? 'opacity-60' : ''}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <Link href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }} className="text-sm font-medium break-words whitespace-pre-wrap hover:underline">
-                        {t.title}
-                      </Link>
-                      <div className="mt-1 text-xs text-gray-500">優先度 {t.priority}</div>
-                    </div>
-                    <div className="shrink-0 flex gap-1">
-                      <button title="完成" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); completeTask(t.id) }} className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
-                      <button title="刪除" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); deleteTask(t.id) }} className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">刪除</button>
+                <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
+                  <div draggable onDragStart={(e)=>onDragStart(e, t.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${t.status==='done' ? 'opacity-60' : ''}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium break-words whitespace-pre-wrap hover:underline">{t.title}</div>
+                        <div className="mt-1 text-xs text-gray-500">優先度 {t.priority}</div>
+                      </div>
+                      <div className="shrink-0 flex gap-1">
+                        <button title="完成" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); completeTask(t.id) }} className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
+                        <button title="刪除" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); deleteTask(t.id) }} className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">刪除</button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
