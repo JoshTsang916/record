@@ -105,6 +105,8 @@ export default function CalendarPage() {
     if (!id) return
     // optimistic update: move in local state
     setTasks(prev => prev.map(t => t.id === id ? { ...t, due_date: dateStr } : t))
+    // if it was previously in no-date list, remove it optimistically
+    setNoDateTasks(prev => prev.filter(t => t.id !== id))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, due_date: dateStr }) })
     if (!res.ok) {
       // revert by reloading
