@@ -82,3 +82,7 @@ You can test end-to-end without GitHub:
 - Default mode stores only text (no audio). Set `SAVE_AUDIO=true` if you want to commit audio as well.
 - If saving audio: iOS Safari records as `audio/mp4` (`.m4a`), Chrome defaults to `webm`. No server-side transcoding.
 - All secrets remain server-side in Next.js route handlers.
+
+## Changelog
+
+- See `docs/CHANGELOG.md` for an iterative record of features, fixes, and performance updates.
