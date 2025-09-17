@@ -192,22 +192,42 @@ export default function FocusBar() {
     return () => window.removeEventListener('open-focus' as any, onFocus)
   }, [])
 
+  // lock scroll when focusing
+  useEffect(() => {
+    if (session) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [session])
+
   if (!session) return null
   const mm = Math.floor(remaining / 60)
   const ss = String(remaining % 60).padStart(2, '0')
   const isPaused = !!session.pausedAt
+  const percent = Math.round(((session.durationSec - remaining) / session.durationSec) * 100)
   return (
-    <div className="sticky top-0 z-40 w-full bg-yellow-50/90 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-      <div className="container py-2 flex items-center justify-between gap-3">
-        <div className="text-sm flex items-center gap-3 min-w-0">
-          <span className="font-mono text-lg">{mm}:{ss}</span>
-          <Link href={{ pathname: `/tasks/${session.taskId}`, query: { path: session.file_path } }} className="truncate hover:underline">{session.taskTitle}</Link>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div role="dialog" aria-modal="true" className="w-full max-w-2xl mx-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 flex flex-col items-center gap-4">
+        <div className="w-full">
+          <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-yellow-400 dark:bg-yellow-500" style={{ width: `${percent}%` }} />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {!session.rerollUsed && <button onClick={rerollOnce} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">重抽一次</button>}
-          <button onClick={pauseResume} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{isPaused ? '繼續' : '暫停'}</button>
-          <button onClick={complete} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
-          <button onClick={cancel} className="h-8 px-3 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">取消</button>
+        <div className="text-6xl font-mono tabular-nums">{mm}:{ss}</div>
+        <Link href={{ pathname: `/tasks/${session.taskId}`, query: { path: session.file_path } }} className="text-center text-lg font-medium hover:underline max-w-full truncate">
+          {session.taskTitle}
+        </Link>
+        <div className="mt-2 flex items-center gap-2">
+          {!session.rerollUsed && (
+            <button onClick={rerollOnce} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">重抽一次</button>
+          )}
+          <button onClick={pauseResume} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{isPaused ? '繼續' : '暫停'}</button>
+          <button onClick={complete} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
+          <button onClick={cancel} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">取消</button>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          專注進行中。切換頁面前請先完成或取消。
         </div>
       </div>
     </div>
