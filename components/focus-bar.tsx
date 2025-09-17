@@ -94,7 +94,7 @@ export default function FocusBar() {
       const res = await fetch('/api/tasks/list', { cache: 'no-store' })
       if (!res.ok) throw new Error('讀取任務失敗')
       const j = await res.json()
-      const pool: Task[] = (j.items || []).filter((t: any) => t.status !== 'blocked')
+      const pool: Task[] = (j.items || []).filter((t: any) => t.status !== 'blocked' && !t.focus_exclude)
       if (!pool.length) { show({ message: '目前沒有可用的未完成任務' }); return }
       const pick = pool[Math.floor(Math.random() * pool.length)]
       setWinner(pick)
@@ -160,7 +160,7 @@ export default function FocusBar() {
       const res = await fetch('/api/tasks/list', { cache: 'no-store' })
       if (!res.ok) throw new Error('讀取任務失敗')
       const j = await res.json()
-      const pool: Task[] = (j.items || []).filter((t: any) => t.status !== 'blocked' && t.id !== session.taskId)
+      const pool: Task[] = (j.items || []).filter((t: any) => t.status !== 'blocked' && !t.focus_exclude && t.id !== session.taskId)
       if (!pool.length) { show({ message: '沒有其他可抽任務' }); return }
       const pick = pool[Math.floor(Math.random() * pool.length)]
       const s: Session = {
@@ -210,6 +210,12 @@ export default function FocusBar() {
           task_title: prev.taskTitle,
           date: (function(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
         }) })
+        // award XP for focus (minutes)
+        const minutes = Math.max(0, Math.floor((Date.now() - prev.startedAt)/1000) - (prev.pausedAccumSec || 0)) / 60
+        const xpRes = await fetch('/api/xp/award', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          source: 'focus', task_id: prev.taskId, task_title: prev.taskTitle, project_id: prev.project_id, minutes, date: (function(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
+        }) })
+        try { const j = await xpRes.json(); if (j?.ok) show({ message: `+${Math.round(j.xp)} XP 角色；屬性 ${j.attributes?.join('/')}；技能 +${Math.round(j.xp)}` }) } catch {}
       } catch {}
       show({ message: `已完成：${prev.taskTitle}`, actionLabel: '撤銷', onAction: async () => {
         await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: prev.taskId, status: 'todo' }) })

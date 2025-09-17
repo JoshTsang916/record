@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ChipsInput from '@/components/chips-input'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/toast'
 
 type TaskStatus = 'backlog'|'todo'|'in_progress'|'blocked'|'done'|'archived'
 
@@ -24,11 +25,13 @@ export default function TaskDetailsPage() {
   const [status, setStatus] = useState<TaskStatus>('todo')
   const [dueDate, setDueDate] = useState('')
   const [recurring, setRecurring] = useState<'daily'|''>('')
+  const [focusAllowed, setFocusAllowed] = useState(true)
   const [projectId, setProjectId] = useState('')
   const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
   const [createdAt, setCreatedAt] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
   const [saving, setSaving] = useState(false)
+  const { show } = useToast()
 
   useEffect(() => { load() }, [id])
   async function load() {
@@ -46,6 +49,7 @@ export default function TaskDetailsPage() {
       setDueDate(fm.due_date || '')
       setProjectId(fm.project_id || '')
       setRecurring(fm.recurring === 'daily' ? 'daily' : '')
+      setFocusAllowed(!(fm.focus_exclude === true))
       setCreatedAt(fm.created_at)
       setUpdatedAt(fm.updated_at)
       try {
@@ -68,10 +72,21 @@ export default function TaskDetailsPage() {
     const res = await fetch('/api/tasks/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title, description, tags, priority, status, due_date: dueDate, project_id: projectId, recurring: recurring || undefined })
+      body: JSON.stringify({ id, title, description, tags, priority, status, due_date: dueDate, project_id: projectId, recurring: recurring || undefined, focus_exclude: !focusAllowed })
     })
     if (!res.ok) alert('儲存失敗')
     setSaving(false)
+  }
+
+  async function completeToday() {
+    const input = prompt('今天完成了幾分鐘？(預設 30)', '30')
+    if (input === null) return
+    const minutes = Math.max(0, Number(input) || 30)
+    // mark done
+    await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: 'done' }) })
+    // award xp as manual
+    const res = await fetch('/api/xp/award', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: 'manual', task_id: id, task_title: title, project_id: '', minutes, date: (function(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })() }) })
+    try { const j = await res.json(); if (j?.ok) show({ message: `+${Math.round(j.xp)} XP 角色；屬性 ${j.attributes?.join('/')}；技能 +${Math.round(j.xp)}` }) } catch { show({ message: `+${Math.round(minutes)} XP 已記錄` }) }
   }
 
   async function onDelete() {
@@ -122,11 +137,13 @@ export default function TaskDetailsPage() {
           <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
         </div>
         <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={recurring==='daily'} onChange={e=>setRecurring(e.target.checked ? 'daily' : '')} /> 每日任務</label>
+        <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={focusAllowed} onChange={e=>setFocusAllowed(e.target.checked)} /> 允許被專注抽卡</label>
         <label className="text-sm">Description</label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} />
       </div>
       <div className="flex gap-2">
         <Button onClick={save} disabled={saving}>{saving ? '儲存中…' : '儲存'}</Button>
+        <Button variant="outline" onClick={completeToday}>今日完成</Button>
         <Button variant="outline" onClick={onDelete}>刪除</Button>
       </div>
     </div>

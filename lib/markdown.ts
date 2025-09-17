@@ -140,6 +140,7 @@ export function serializeTask({ frontmatter, content }: TaskFile): string {
     `due_date: ${fm.due_date || ''}`,
     `completed_at: ${fm.completed_at || ''}`,
     `recurring: ${fm.recurring || ''}`,
+    `focus_exclude: ${fm.focus_exclude ? 'true' : 'false'}`,
     `estimate: ${typeof fm.estimate === 'number' ? fm.estimate : ''}`,
     `assignee: ${fm.assignee || ''}`,
     'relations:',
@@ -167,6 +168,7 @@ export function parseTask(md: string): TaskFile {
     due_date: data.due_date ? String(data.due_date) : undefined,
     completed_at: data.completed_at ? String(data.completed_at) : undefined,
     recurring: data.recurring === 'daily' ? 'daily' : undefined,
+    focus_exclude: data.focus_exclude === true || data.focus_exclude === 'true',
     estimate: typeof data.estimate === 'number' ? data.estimate : undefined,
     assignee: data.assignee ? String(data.assignee) : undefined,
     relations: { links: Array.isArray(data.relations?.links) ? data.relations.links : [] }

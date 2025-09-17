@@ -81,6 +81,7 @@ export interface TaskFrontmatter {
   due_date?: string
   completed_at?: string
   recurring?: 'daily'
+  focus_exclude?: boolean
   estimate?: number
   assignee?: string
   position: number
@@ -99,6 +100,7 @@ export interface TaskIndexRecord {
   due_date?: string
   completed_at?: string
   recurring?: 'daily'
+  focus_exclude?: boolean
   file_path: string
 }
 export interface TaskFile {

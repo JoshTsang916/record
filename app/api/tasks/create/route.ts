@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       due_date: body.due_date ? String(body.due_date) : undefined,
       completed_at: undefined,
       recurring: body.recurring === 'daily' ? 'daily' : undefined,
+      focus_exclude: body.focus_exclude === true,
       estimate: typeof body.estimate === 'number' ? body.estimate : undefined,
       assignee: body.assignee ? String(body.assignee) : undefined,
       position: Number(body.position || Date.now()),
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       const list = await readTasksIndex()
       const record: TaskIndexRecord = {
         id, project_id: fm.project_id, title: fm.title, status: fm.status, priority: fm.priority, position: fm.position,
-        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, due_date: fm.due_date, completed_at: fm.completed_at, recurring: fm.recurring, file_path: mdPath
+        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, due_date: fm.due_date, completed_at: fm.completed_at, recurring: fm.recurring, focus_exclude: fm.focus_exclude, file_path: mdPath
       }
       const next = [record, ...list.filter(x => x.id !== id)]
       await commitFiles({ message: `feat(task): add ${id} - ${fm.title}`, files: [
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     } else {
       const record: TaskIndexRecord = {
         id, project_id: fm.project_id, title: fm.title, status: fm.status, priority: fm.priority, position: fm.position,
-        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, due_date: fm.due_date, completed_at: fm.completed_at, recurring: fm.recurring, file_path: mdPath
+        tags: fm.tags, created_at: fm.created_at, updated_at: fm.updated_at, due_date: fm.due_date, completed_at: fm.completed_at, recurring: fm.recurring, focus_exclude: fm.focus_exclude, file_path: mdPath
       }
       devTasksAdd(mdPath, { frontmatter: fm, content: body.content || '' }, record)
     }

@@ -9,6 +9,7 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
   const [dark, setDark] = useState(false)
   const [streak, setStreak] = useState<{ streak: number, week_count: number, week_minutes: number }>({ streak: 0, week_count: 0, week_minutes: 0 })
   const [openPanel, setOpenPanel] = useState(false)
+  const [level, setLevel] = useState<{ level: number, progress: number }>({ level: 1, progress: 0 })
 
   useEffect(() => {
     // theme init
@@ -35,6 +36,8 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
         if (res.ok) {
           const j = await res.json(); setStreak({ streak: j.streak||0, week_count: j.week_count||0, week_minutes: j.week_minutes||0 })
         }
+        const xp = await fetch('/api/xp/stats/profile', { cache: 'no-store' })
+        if (xp.ok) { const j = await xp.json(); setLevel({ level: j.level||1, progress: j.progress||0 }) }
       } catch {}
     })()
   }, [])
@@ -86,6 +89,10 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
             <Link href="/board"><Button variant="outline">看板</Button></Link>
             <Link href="/calendar"><Button variant="outline">日曆</Button></Link>
             <Link href="/projects"><Button variant="outline">專案</Button></Link>
+            <div className="hidden sm:flex items-center gap-2 px-2">
+              <span className="text-xs">Lv {level.level}</span>
+              <div className="w-24 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${Math.round(level.progress*100)}%` }} /></div>
+            </div>
             <button className="relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm" onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
               🔥 {streak.streak}
             </button>

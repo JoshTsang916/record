@@ -8,7 +8,7 @@ import { revalidateTag } from 'next/cache'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { id, title, description, status, priority, tags, content, position, project_id, due_date, completed_at, recurring, estimate, assignee } = body || {}
+    const { id, title, description, status, priority, tags, content, position, project_id, due_date, completed_at, recurring, focus_exclude, estimate, assignee } = body || {}
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
     const hasGitHub = !!process.env.GITHUB_REPO && !!process.env.GITHUB_TOKEN
     const list = hasGitHub ? await readTasksIndex() : devTasksList()
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       file.frontmatter.completed_at = nowIso
     }
     if (typeof recurring === 'string') file.frontmatter.recurring = recurring === 'daily' ? 'daily' : undefined
+    if (typeof focus_exclude === 'boolean') file.frontmatter.focus_exclude = focus_exclude
     if (typeof estimate === 'number') file.frontmatter.estimate = estimate
     if (typeof assignee === 'string') file.frontmatter.assignee = assignee
     file.frontmatter.updated_at = nowIso
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     const md = serializeTask(file)
     const idx = list.findIndex(x => x.id === id)
     if (idx !== -1) {
-      list[idx] = { ...list[idx], title: file.frontmatter.title, status: file.frontmatter.status, priority: file.frontmatter.priority, position: file.frontmatter.position, tags: file.frontmatter.tags, updated_at: nowIso, project_id: file.frontmatter.project_id, due_date: file.frontmatter.due_date, completed_at: file.frontmatter.completed_at, recurring: file.frontmatter.recurring }
+      list[idx] = { ...list[idx], title: file.frontmatter.title, status: file.frontmatter.status, priority: file.frontmatter.priority, position: file.frontmatter.position, tags: file.frontmatter.tags, updated_at: nowIso, project_id: file.frontmatter.project_id, due_date: file.frontmatter.due_date, completed_at: file.frontmatter.completed_at, recurring: file.frontmatter.recurring, focus_exclude: file.frontmatter.focus_exclude }
     }
     if (hasGitHub) {
       await commitFiles({ message: `feat(task): update ${id} - ${file.frontmatter.title}`,
