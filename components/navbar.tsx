@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 
 export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: () => void, onNewText?: () => void }) {
   const [queued, setQueued] = useState<number>(0)
