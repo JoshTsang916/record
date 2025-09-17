@@ -254,8 +254,8 @@ export default function FocusBar() {
   const isPaused = !!session?.pausedAt
   const percent = session ? Math.round(((session.durationSec - remaining) / session.durationSec) * 100) : 0
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div role="dialog" aria-modal="true" className="w-full max-w-2xl mx-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 flex flex-col items-center gap-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-100/70 dark:bg-amber-900/30">
+      <div role="dialog" aria-modal="true" className="w-full max-w-2xl mx-4 rounded-xl bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-800 p-6 flex flex-col items-center gap-4 shadow-lg">
         {mode==='drawing' && (
           <>
             <div className="text-sm text-gray-500 dark:text-gray-400">抽選中…</div>
@@ -269,8 +269,9 @@ export default function FocusBar() {
         )}
         {mode==='countdown' && (
           <>
-            <div className="text-sm text-gray-500 dark:text-gray-400">準備開始</div>
-            <div className="text-7xl font-mono">{count3}</div>
+            <div className="text-sm text-amber-700 dark:text-amber-300">準備開始</div>
+            <div className="text-center text-lg font-medium max-w-full break-words whitespace-pre-wrap text-amber-800 dark:text-amber-200">{winner?.title || displayTitle}</div>
+            <div className="text-7xl font-mono text-amber-900 dark:text-amber-200">{count3}</div>
             <div className="mt-4 flex items-center gap-2">
               <button onClick={() => { if (winner) { startCountdown(winner) } }} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">重新倒數</button>
               <button onClick={() => { if (winner) { // 直接開始
@@ -284,11 +285,11 @@ export default function FocusBar() {
         {session && mode==='running' && (
           <>
             <div className="w-full">
-              <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div className="h-full bg-yellow-400 dark:bg-yellow-500" style={{ width: `${percent}%` }} />
+              <div className="h-2 w-full bg-amber-200 dark:bg-amber-900 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 dark:bg-amber-400" style={{ width: `${percent}%` }} />
               </div>
             </div>
-            <div className="text-6xl font-mono tabular-nums">{mm}:{ss}</div>
+            <div className="text-6xl font-mono tabular-nums text-amber-900 dark:text-amber-100">{mm}:{ss}</div>
             <Link href={{ pathname: `/tasks/${session.taskId}`, query: { path: session.file_path } }} className="text-center text-lg font-medium hover:underline max-w-full truncate">
               {session.taskTitle}
             </Link>
