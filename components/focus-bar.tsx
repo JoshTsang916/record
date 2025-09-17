@@ -282,26 +282,28 @@ export default function FocusBar() {
           </>
         )}
         {session && mode==='running' && (
-        <div className="w-full">
-          <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-full bg-yellow-400 dark:bg-yellow-500" style={{ width: `${percent}%` }} />
-          </div>
-        </div>
-        <div className="text-6xl font-mono tabular-nums">{mm}:{ss}</div>
-        <Link href={{ pathname: `/tasks/${session.taskId}`, query: { path: session.file_path } }} className="text-center text-lg font-medium hover:underline max-w-full truncate">
-          {session.taskTitle}
-        </Link>
-        <div className="mt-2 flex items-center gap-2">
-          {!session.rerollUsed && (
-            <button onClick={rerollOnce} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">重抽一次</button>
-          )}
-          <button onClick={pauseResume} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{isPaused ? '繼續' : '暫停'}</button>
-          <button onClick={complete} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
-          <button onClick={cancel} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">取消</button>
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          專注進行中。切換頁面前請先完成或取消。
-        </div>
+          <>
+            <div className="w-full">
+              <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-yellow-400 dark:bg-yellow-500" style={{ width: `${percent}%` }} />
+              </div>
+            </div>
+            <div className="text-6xl font-mono tabular-nums">{mm}:{ss}</div>
+            <Link href={{ pathname: `/tasks/${session.taskId}`, query: { path: session.file_path } }} className="text-center text-lg font-medium hover:underline max-w-full truncate">
+              {session.taskTitle}
+            </Link>
+            <div className="mt-2 flex items-center gap-2">
+              {!session.rerollUsed && (
+                <button onClick={rerollOnce} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">重抽一次</button>
+              )}
+              <button onClick={pauseResume} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">{isPaused ? '繼續' : '暫停'}</button>
+              <button onClick={complete} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>
+              <button onClick={cancel} className="h-10 px-4 rounded-md border text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">取消</button>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              專注進行中。切換頁面前請先完成或取消。
+            </div>
+          </>
         )}
       </div>
     </div>
