@@ -18,7 +18,21 @@ export async function GET(req: NextRequest) {
     if (projectId) list = list.filter(t => t.project_id === projectId)
     if (status) list = list.filter(t => t.status === status)
     if (tag) list = list.filter(t => (t.tags||[]).includes(tag))
-    if (!includeDone && !completedOnly) list = list.filter(t => t.status !== 'done' && t.status !== 'archived')
+    if (!includeDone && !completedOnly) {
+      const today = new Date(); const y = today.getUTCFullYear(); const m = String(today.getUTCMonth()+1).padStart(2,'0'); const d = String(today.getUTCDate()).padStart(2,'0');
+      const todayStr = `${y}-${m}-${d}`
+      list = list.filter(t => {
+        if (t.status === 'archived') return false
+        if (t.status !== 'done') return true
+        // allow recurring daily tasks if not completed today
+        if (t.recurring === 'daily') {
+          const ca = (t as any).completed_at as string | undefined
+          if (!ca) return true
+          return !ca.startsWith(todayStr)
+        }
+        return false
+      })
+    }
     if (noDateOnly && !completedOnly) {
       list = list.filter(t => !t.due_date)
     } else if (from || to) {
