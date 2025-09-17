@@ -200,6 +200,17 @@ export default function FocusBar() {
     persist(null)
     try {
       await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: prev.taskId, status: 'done' }) })
+      // log focus completion (threshold handled server-side)
+      try {
+        await fetch('/api/focus/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          started_at: new Date(prev.startedAt).toISOString(),
+          ended_at: new Date().toISOString(),
+          seconds: Math.max(0, Math.floor((Date.now() - prev.startedAt)/1000) - (prev.pausedAccumSec || 0)),
+          task_id: prev.taskId,
+          task_title: prev.taskTitle,
+          date: (function(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
+        }) })
+      } catch {}
       show({ message: `已完成：${prev.taskTitle}`, actionLabel: '撤銷', onAction: async () => {
         await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: prev.taskId, status: 'todo' }) })
       } })

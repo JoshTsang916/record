@@ -3,10 +3,13 @@ import Link from 'next/link'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: () => void, onNewText?: () => void }) {
   const [queued, setQueued] = useState<number>(0)
   const [dark, setDark] = useState(false)
+  const [streak, setStreak] = useState<{ streak: number, week_count: number, week_minutes: number }>({ streak: 0, week_count: 0, week_minutes: 0 })
+  const [openPanel, setOpenPanel] = useState(false)
 
   useEffect(() => {
     // theme init
@@ -24,6 +27,17 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
     refresh()
     const id = setInterval(refresh, 2000)
     return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('/api/focus/stats', { cache: 'no-store' })
+        if (res.ok) {
+          const j = await res.json(); setStreak({ streak: j.streak||0, week_count: j.week_count||0, week_minutes: j.week_minutes||0 })
+        }
+      } catch {}
+    })()
   }, [])
 
   async function retryQueue() {
@@ -73,9 +87,20 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
             <Link href="/board"><Button variant="outline">看板</Button></Link>
             <Link href="/calendar"><Button variant="outline">日曆</Button></Link>
             <Link href="/projects"><Button variant="outline">專案</Button></Link>
+            <button className="relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm" onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
+              🔥 {streak.streak}
+            </button>
             <Button variant="ghost" onClick={toggleTheme}>{dark ? '亮色' : '夜間'}</Button>
           </div>
         </div>
+        {openPanel && (
+          <div className="absolute right-2 top-12 z-50 w-64 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm shadow">
+            <div className="font-medium mb-2">專注統計</div>
+            <div className="flex items-center justify-between"><span>連續天數</span><span className="font-mono">{streak.streak} 天</span></div>
+            <div className="flex items-center justify-between"><span>本週次數</span><span className="font-mono">{streak.week_count}</span></div>
+            <div className="flex items-center justify-between"><span>本週分鐘</span><span className="font-mono">{streak.week_minutes}</span></div>
+          </div>
+        )}
       </div>
     </nav>
   )
