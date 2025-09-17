@@ -42,6 +42,9 @@ export async function GET() {
     const tasks = await readTasksIndex()
     const need: Array<{ title: string }> = titles.filter(t => !tasks.some(x => x.title === t && x.project_id === proj!.id))
       .map(title => ({ title }))
+
+    // accumulate all new task records and write index once
+    let currentTasks = [...tasks]
     for (const n of need) {
       const tid = taskId()
       const tpath = taskMdPath(tid, nowIso)
@@ -65,9 +68,11 @@ export async function GET() {
       }
       const tmd = serializeTask({ frontmatter: tfm, content: '' })
       const trec: TaskIndexRecord = { id: tid, project_id: proj!.id, title: tfm.title, status: tfm.status, priority: tfm.priority, position: tfm.position, tags: tfm.tags, created_at: tfm.created_at, updated_at: tfm.updated_at, due_date: tfm.due_date, completed_at: tfm.completed_at, recurring: tfm.recurring, file_path: tpath }
-      const nextTasks = [trec, ...tasks.filter(x => x.id !== tid)]
+      currentTasks = [trec, ...currentTasks.filter(x => x.id !== tid)]
       files.push({ path: tpath, content: tmd })
-      files.push({ path: TASKS_INDEX_PATH, content: JSON.stringify(nextTasks, null, 2) })
+    }
+    if (need.length > 0) {
+      files.push({ path: TASKS_INDEX_PATH, content: JSON.stringify(currentTasks, null, 2) })
     }
 
     if (files.length === 0) return NextResponse.json({ ok: true, created: 0, message: 'Already seeded' })
@@ -77,4 +82,3 @@ export async function GET() {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }
 }
-
