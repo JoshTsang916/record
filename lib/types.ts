@@ -79,6 +79,7 @@ export interface TaskFrontmatter {
   priority: number
   tags: string[]
   due_date?: string
+  completed_at?: string
   estimate?: number
   assignee?: string
   position: number
@@ -95,6 +96,7 @@ export interface TaskIndexRecord {
   created_at: string
   updated_at: string
   due_date?: string
+  completed_at?: string
   file_path: string
 }
 export interface TaskFile {

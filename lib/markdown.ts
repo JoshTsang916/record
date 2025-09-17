@@ -138,6 +138,7 @@ export function serializeTask({ frontmatter, content }: TaskFile): string {
     `position: ${fm.position}`,
     `tags: [${fm.tags.map(escapeYaml).join(', ')}]`,
     `due_date: ${fm.due_date || ''}`,
+    `completed_at: ${fm.completed_at || ''}`,
     `estimate: ${typeof fm.estimate === 'number' ? fm.estimate : ''}`,
     `assignee: ${fm.assignee || ''}`,
     'relations:',
@@ -163,6 +164,7 @@ export function parseTask(md: string): TaskFile {
     position: Number(data.position || 0),
     tags: Array.isArray(data.tags) ? data.tags : [],
     due_date: data.due_date ? String(data.due_date) : undefined,
+    completed_at: data.completed_at ? String(data.completed_at) : undefined,
     estimate: typeof data.estimate === 'number' ? data.estimate : undefined,
     assignee: data.assignee ? String(data.assignee) : undefined,
     relations: { links: Array.isArray(data.relations?.links) ? data.relations.links : [] }

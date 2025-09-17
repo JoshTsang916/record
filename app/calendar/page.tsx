@@ -29,6 +29,7 @@ export default function CalendarPage() {
   const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
   const [projectId, setProjectId] = useState('')
   const [includeDone, setIncludeDone] = useState(false)
+  const [mode, setMode] = useState<'due'|'completed'>('due')
   const [statusFilter, setStatusFilter] = useState('')
   const [tagFilter, setTagFilter] = useState('')
   const [loading, setLoading] = useState(false)
@@ -54,23 +55,31 @@ export default function CalendarPage() {
       qs.set('from', startDate)
       qs.set('to', endDate)
       if (projectId) qs.set('project_id', projectId)
-      if (statusFilter) qs.set('status', statusFilter)
-      if (tagFilter) qs.set('tag', tagFilter)
-      if (includeDone) qs.set('include_done', 'true')
+      if (mode === 'due') {
+        if (statusFilter) qs.set('status', statusFilter)
+        if (tagFilter) qs.set('tag', tagFilter)
+        if (includeDone) qs.set('include_done', 'true')
+      } else {
+        // completed mode ignores includeDone/status; only fetch by completed date
+        if (tagFilter) qs.set('tag', tagFilter)
+        qs.set('completed_only', 'true')
+      }
       const res = await fetch(`/api/tasks/list?${qs.toString()}`, { cache: 'no-store' })
       if (res.ok) {
         const j = await res.json(); setTasks(j.items || [])
       }
-      // fetch no-date tasks (nodate=true bypasses date range)
-      const qs2 = new URLSearchParams()
-      qs2.set('nodate', 'true')
-      if (projectId) qs2.set('project_id', projectId)
-      if (statusFilter) qs2.set('status', statusFilter)
-      if (tagFilter) qs2.set('tag', tagFilter)
-      if (includeDone) qs2.set('include_done', 'true')
-      const res2 = await fetch(`/api/tasks/list?${qs2.toString()}`, { cache: 'no-store' })
-      if (res2.ok) {
-        const j2 = await res2.json(); setNoDateTasks(j2.items || [])
+      // fetch no-date only in due mode
+      if (mode === 'due') {
+        const qs2 = new URLSearchParams()
+        qs2.set('nodate', 'true')
+        if (projectId) qs2.set('project_id', projectId)
+        if (statusFilter) qs2.set('status', statusFilter)
+        if (tagFilter) qs2.set('tag', tagFilter)
+        if (includeDone) qs2.set('include_done', 'true')
+        const res2 = await fetch(`/api/tasks/list?${qs2.toString()}`, { cache: 'no-store' })
+        if (res2.ok) {
+          const j2 = await res2.json(); setNoDateTasks(j2.items || [])
+        }
       }
     } finally { setLoading(false) }
   }
@@ -78,14 +87,14 @@ export default function CalendarPage() {
   const byDate = useMemo(() => {
     const map = new Map<string, Task[]>()
     for (const t of tasks) {
-      const d = t.due_date || ''
+      const d = mode === 'completed' ? (t as any).completed_at || '' : t.due_date || ''
       if (!d) continue
       if (!map.has(d)) map.set(d, [])
       map.get(d)!.push(t)
     }
     for (const [k, arr] of map.entries()) arr.sort((a,b) => (b.priority - a.priority) || a.title.localeCompare(b.title))
     return map
-  }, [tasks])
+  }, [tasks, mode])
 
   function prevMonth() {
     setYearMonth(({ y, m }) => m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })
@@ -164,6 +173,10 @@ export default function CalendarPage() {
           <option value="">全部專案</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
+        <select value={mode} onChange={e=>setMode(e.target.value as any)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
+          <option value="due">按到期</option>
+          <option value="completed">按完成</option>
+        </select>
         <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
           <option value="">所有狀態</option>
           <option value="backlog">待規劃</option>
@@ -220,7 +233,8 @@ export default function CalendarPage() {
           )
         })}
       </div>
-      {/* No-date zone */}
+      {/* No-date zone only for due mode */}
+      {mode==='due' && (
       <div className="mt-3 rounded-md border border-dashed border-gray-300 dark:border-gray-700 p-3" onDragOver={onDragOver} onDrop={async (e)=>{
         e.preventDefault();
         const id = e.dataTransfer.getData('text/plain')
@@ -238,6 +252,7 @@ export default function CalendarPage() {
           {noDateTasks.length === 0 && <div className="text-xs text-gray-500">目前沒有無日期任務</div>}
         </div>
       </div>
+      )}
       {loading && <div className="text-sm text-gray-500">載入中…</div>}
     </div>
   )
