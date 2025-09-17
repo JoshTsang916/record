@@ -80,6 +80,7 @@ export interface TaskFrontmatter {
   tags: string[]
   due_date?: string
   completed_at?: string
+  recurring?: 'daily'
   estimate?: number
   assignee?: string
   position: number
@@ -97,6 +98,7 @@ export interface TaskIndexRecord {
   updated_at: string
   due_date?: string
   completed_at?: string
+  recurring?: 'daily'
   file_path: string
 }
 export interface TaskFile {

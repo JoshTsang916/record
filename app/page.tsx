@@ -48,6 +48,7 @@ export default function HomePage() {
   const [hideCompleted, setHideCompleted] = useState(false)
   const [showTextModal, setShowTextModal] = useState(false)
   const [newText, setNewText] = useState('')
+  const [newKind, setNewKind] = useState<'idea'|'task'>('idea')
   const [newTitle, setNewTitle] = useState('')
   const [newTags, setNewTags] = useState<string[]>([])
   const [newImportance, setNewImportance] = useState<number>(3)
@@ -182,21 +183,36 @@ export default function HomePage() {
   async function createTextIdea() {
     if (creating) return
     setCreating(true)
-    const fd = new FormData()
-    fd.append('title', newTitle)
-    fd.append('tags', newTags.join(','))
-    fd.append('text', newText)
-    fd.append('wantTranscription', 'false')
-    fd.append('importance', String(newImportance))
-    fd.append('status', newStatus)
-    if (newProjectId) fd.append('project_id', newProjectId)
-    const res = await fetch('/api/capture', { method: 'POST', body: fd })
-    if (res.ok) {
+    let ok = false
+    if (newKind === 'idea') {
+      const fd = new FormData()
+      fd.append('title', newTitle)
+      fd.append('tags', newTags.join(','))
+      fd.append('text', newText)
+      fd.append('wantTranscription', 'false')
+      fd.append('importance', String(newImportance))
+      fd.append('status', newStatus)
+      if (newProjectId) fd.append('project_id', newProjectId)
+      const res = await fetch('/api/capture', { method: 'POST', body: fd })
+      ok = res.ok
+    } else {
+      const body: any = {
+        title: newTitle || (newText.slice(0, 80) || 'Untitled Task'),
+        description: newText,
+        project_id: newProjectId,
+        priority: newImportance,
+        status: newStatus === 'done' ? 'todo' : (newStatus === 'curating' || newStatus === 'draft' ? 'backlog' : 'todo'),
+        tags: newTags
+      }
+      const res = await fetch('/api/tasks/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      ok = res.ok
+    }
+    if (ok) {
       setShowTextModal(false)
       setNewText(''); setNewTitle(''); setNewTags([]); setNewProjectId('')
       await load()
     } else {
-      try { const j = await res.json(); alert(j?.error || 'Save failed') } catch { alert('Save failed') }
+      alert('Save failed')
     }
     setCreating(false)
   }
@@ -438,15 +454,23 @@ export default function HomePage() {
       {showTextModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 dark:text-gray-100 p-4 space-y-2">
-            <h2 className="text-lg font-semibold">New Text Idea</h2>
+            <h2 className="text-lg font-semibold">New Text</h2>
+            <div className="flex items-center gap-2 text-sm">
+              <label className={`px-2 py-1 rounded border ${newKind==='idea'?'bg-black text-white dark:bg-gray-800':'bg-transparent'}`}><input type="radio" name="new-kind" className="hidden" checked={newKind==='idea'} onChange={()=>setNewKind('idea')} /> Idea</label>
+              <label className={`px-2 py-1 rounded border ${newKind==='task'?'bg-black text-white dark:bg-gray-800':'bg-transparent'}`}><input type="radio" name="new-kind" className="hidden" checked={newKind==='task'} onChange={()=>setNewKind('task')} /> Task</label>
+            </div>
             <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" />
             <Textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Write your idea..." />
             <ChipsInput value={newTags} onChange={setNewTags} placeholder="新增標籤，Enter/逗號確定" />
-            <label className="text-sm">專案</label>
-            <select value={newProjectId} onChange={e=>setNewProjectId(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700">
-              <option value="">未指定</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-            </select>
+            {newKind==='task' && (
+              <>
+                <label className="text-sm">專案</label>
+                <select value={newProjectId} onChange={e=>setNewProjectId(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700">
+                  <option value="">未指定</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                </select>
+              </>
+            )}
             <div className="flex items-center gap-2">
               <label className="text-sm">重要性</label>
               <input type="number" min={1} max={5} value={newImportance} onChange={e => setNewImportance(Number(e.target.value))} className="h-10 rounded-md border px-3 text-sm w-24 dark:bg-gray-900 dark:border-gray-700" />

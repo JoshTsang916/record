@@ -23,6 +23,7 @@ export default function TaskDetailsPage() {
   const [priority, setPriority] = useState(3)
   const [status, setStatus] = useState<TaskStatus>('todo')
   const [dueDate, setDueDate] = useState('')
+  const [recurring, setRecurring] = useState<'daily'|''>('')
   const [projectId, setProjectId] = useState('')
   const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
   const [createdAt, setCreatedAt] = useState('')
@@ -44,6 +45,7 @@ export default function TaskDetailsPage() {
       setStatus(fm.status || 'todo')
       setDueDate(fm.due_date || '')
       setProjectId(fm.project_id || '')
+      setRecurring(fm.recurring === 'daily' ? 'daily' : '')
       setCreatedAt(fm.created_at)
       setUpdatedAt(fm.updated_at)
       try {
@@ -66,7 +68,7 @@ export default function TaskDetailsPage() {
     const res = await fetch('/api/tasks/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title, description, tags, priority, status, due_date: dueDate, project_id: projectId })
+      body: JSON.stringify({ id, title, description, tags, priority, status, due_date: dueDate, project_id: projectId, recurring: recurring || undefined })
     })
     if (!res.ok) alert('儲存失敗')
     setSaving(false)
@@ -119,6 +121,7 @@ export default function TaskDetailsPage() {
           <label className="text-sm">截止日</label>
           <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
         </div>
+        <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={recurring==='daily'} onChange={e=>setRecurring(e.target.checked ? 'daily' : '')} /> 每日任務</label>
         <label className="text-sm">Description</label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} />
       </div>
