@@ -18,7 +18,7 @@ async function readMonth(ym: string) {
   try {
     const content = await getContent(`game/focus/${ym}.jsonl`)
     if (!content) return [] as any[]
-    return content.split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line))
+    return content.split(/\r?\n/).filter(Boolean).map((line: string) => JSON.parse(line))
   } catch { return [] as any[] }
 }
 
@@ -76,4 +76,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }
 }
-
