@@ -187,12 +187,9 @@ export default function GrowthPage() {
           {skillStats.length > 0 ? (
             <div className="space-y-2">
               {skillStats.map(skill => (
-                <div key={skill.id} className="flex flex-col gap-1 rounded-md border border-dashed border-gray-200 dark:border-gray-800 p-3">
+                <div key={skill.id} className="flex flex-col gap-2 rounded-md border border-dashed border-gray-200 dark:border-gray-800 p-3">
                   <div className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex flex-col">
-                      <span className="font-medium">{skill.title}</span>
-                      <span className="text-xs text-gray-500">ID：{skill.id}</span>
-                    </div>
+                    <span className="font-medium truncate" title={skill.title}>{skill.title}</span>
                     <span className="text-xs text-gray-500">{skill.xp} XP</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-[11px] text-gray-500">
