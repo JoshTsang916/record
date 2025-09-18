@@ -89,9 +89,11 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
             <Link href="/board"><Button variant="outline">看板</Button></Link>
             <Link href="/calendar"><Button variant="outline">日曆</Button></Link>
             <Link href="/projects"><Button variant="outline">專案</Button></Link>
-            <div className="hidden sm:flex items-center gap-2 px-2">
+            <Link href="/growth"><Button variant="outline">成長</Button></Link>
+            <div className="flex items-center gap-2 px-2">
               <span className="text-xs">Lv {level.level}</span>
-              <div className="w-24 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${Math.round(level.progress*100)}%` }} /></div>
+              <div className="w-20 sm:w-24 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${Math.round(level.progress*100)}%` }} /></div>
+              <span className="text-xs">{Math.round(level.progress*100)}%</span>
             </div>
             <button className="relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm" onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
               🔥 {streak.streak}

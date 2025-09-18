@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const projectId = searchParams.get('project_id') || ''
+    const todayParam = (searchParams.get('today') || '').trim() // expect YYYY-MM-DD from client local day
     const from = searchParams.get('from') || '' // YYYY-MM-DD
     const to = searchParams.get('to') || ''     // YYYY-MM-DD
     const status = searchParams.get('status') || ''
@@ -21,8 +22,7 @@ export async function GET(req: NextRequest) {
     if (status) list = list.filter(t => t.status === status)
     if (tag) list = list.filter(t => (t.tags||[]).includes(tag))
     if (!includeDone && !completedOnly) {
-      const today = new Date(); const y = today.getUTCFullYear(); const m = String(today.getUTCMonth()+1).padStart(2,'0'); const d = String(today.getUTCDate()).padStart(2,'0');
-      const todayStr = `${y}-${m}-${d}`
+      const todayStr = todayParam || (() => { const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
       list = list.filter(t => {
         if (t.status === 'archived') return false
         if (t.status !== 'done') return true
@@ -54,9 +54,21 @@ export async function GET(req: NextRequest) {
         })
       }
     }
+    // attach effective daily status for client rendering
+    const todayStr = todayParam || (() => { const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
+    const withEffective = list.map(t => {
+      let effective_status = t.status
+      let effective_completed_today = false
+      if (t.recurring === 'daily') {
+        const ca = (t as any).completed_at as string | undefined
+        if (ca && ca.startsWith(todayStr)) { effective_status = 'done'; effective_completed_today = true }
+        else { effective_status = 'todo' }
+      }
+      return { ...t, effective_status, effective_completed_today }
+    })
     // sort by position asc, then priority desc, then updated desc
-    list.sort((a, b) => (a.position - b.position) || (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
-    return NextResponse.json({ items: list })
+    withEffective.sort((a: any, b: any) => (a.position - b.position) || (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
+    return NextResponse.json({ items: withEffective })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }

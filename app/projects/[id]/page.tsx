@@ -47,18 +47,20 @@ export default function ProjectDetailPage() {
     const qs = path ? `?path=${encodeURIComponent(path)}` : `?id=${id}`
     const pr = await fetch(`/api/projects/read${qs}`, { cache: 'no-store' })
     if (pr.ok) { const j = await pr.json(); setItem(j.item); setFile(j.file) }
-    const tr = await fetch(`/api/tasks/list?project_id=${id}&include_done=${includeDone ? 'true' : 'false'}`, { cache: 'no-store' })
+    const today = (() => { const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
+    const tr = await fetch(`/api/tasks/list?project_id=${id}&include_done=${includeDone ? 'true' : 'false'}&today=${encodeURIComponent(today)}`, { cache: 'no-store' })
     if (tr.ok) { const j = await tr.json(); setTasks(j.items || []) }
   }
 
   const grouped = useMemo(() => {
-    const filter = (arr: Task[]) => arr.filter(t => (t.status!=='archived') && (!q || t.title.toLowerCase().includes(q.toLowerCase()))).sort((a,b)=> (a.position-b.position) || (b.priority-a.priority) || b.updated_at.localeCompare(a.updated_at))
+    const eff = (t: any) => (t.effective_status || t.status)
+    const filter = (arr: Task[]) => arr.filter(t => (eff(t)!=='archived') && (!q || t.title.toLowerCase().includes(q.toLowerCase()))).sort((a,b)=> (a.position-b.position) || (b.priority-a.priority) || b.updated_at.localeCompare(a.updated_at))
     return {
-      backlog: filter(tasks.filter(t=>t.status==='backlog')),
-      todo: filter(tasks.filter(t=>t.status==='todo')),
-      in_progress: filter(tasks.filter(t=>t.status==='in_progress')),
-      blocked: filter(tasks.filter(t=>t.status==='blocked')),
-      done: filter(tasks.filter(t=>t.status==='done')),
+      backlog: filter(tasks.filter(t=>eff(t)==='backlog')),
+      todo: filter(tasks.filter(t=>eff(t)==='todo')),
+      in_progress: filter(tasks.filter(t=>eff(t)==='in_progress')),
+      blocked: filter(tasks.filter(t=>eff(t)==='blocked')),
+      done: filter(tasks.filter(t=>eff(t)==='done')),
     }
   }, [tasks, q])
 

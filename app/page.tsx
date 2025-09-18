@@ -31,6 +31,10 @@ type TaskItem = {
   priority: number
   due_date?: string
   file_path: string
+  recurring?: 'daily'
+  effective_status?: 'backlog'|'todo'|'in_progress'|'blocked'|'done'|'archived'|string
+  effective_completed_today?: boolean
+  focus_exclude?: boolean
 }
 
 export default function HomePage() {
@@ -91,7 +95,8 @@ export default function HomePage() {
       const j = await res.json()
       setItems(j.items || [])
     }
-    const rt = await fetch('/api/tasks/list?include_done=true', { cache: 'no-store' })
+    const today = (() => { const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })()
+    const rt = await fetch(`/api/tasks/list?include_done=true&today=${encodeURIComponent(today)}`, { cache: 'no-store' })
     if (rt.ok) { const j = await rt.json(); setTasks(j.items || []) }
   }
 
@@ -144,9 +149,11 @@ export default function HomePage() {
     let arr = tasks.filter(t => {
       const matchQ = !q || (t.title?.toLowerCase().includes(q.toLowerCase()))
       const matchTag = !tag || (t.tags || []).includes(tag)
-      const matchStatus = !taskStatusFilter || t.status === (taskStatusFilter as any)
+      const eff = (t.effective_status as any) || t.status
+      const matchStatus = !taskStatusFilter || eff === (taskStatusFilter as any)
       const matchDone = hideCompleted ? t.status !== 'done' : true
-      return matchQ && matchTag && matchStatus && matchDone
+      const matchDoneEff = hideCompleted ? eff !== 'done' : true
+      return matchQ && matchTag && matchStatus && matchDone && matchDoneEff
     })
     if (taskSortBy === 'priority') arr = [...arr].sort((a,b)=> (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
     else arr = [...arr].sort((a,b)=> b.created_at.localeCompare(a.created_at))
