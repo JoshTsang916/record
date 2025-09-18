@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
         project_title: entry.project_id ? (projectMap[entry.project_id] || entry.project_id) : '',
       }))
       .sort((a, b) => (b.ts || '').localeCompare(a.ts || ''))
-      .slice(0, 200)
+      .slice(0, 10)
     return NextResponse.json({ total_xp: total, ...lv, attributes: attributeList, skills, history })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })

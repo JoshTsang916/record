@@ -72,6 +72,19 @@ const EMPTY_PROFILE: ProfileResponse = {
   history: []
 }
 
+function calcLevel(xp: number) {
+  let lvl = 1
+  let need = 100
+  let remain = xp
+  while (remain >= need) {
+    remain -= need
+    lvl += 1
+    need = Math.round(need * 1.2)
+  }
+  const progress = need > 0 ? remain / need : 0
+  return { level: lvl, progress }
+}
+
 export default function GrowthPage() {
   const [profile, setProfile] = useState<ProfileResponse>(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
@@ -94,13 +107,19 @@ export default function GrowthPage() {
     return ATTRIBUTE_ORDER.map(key => ({
       key,
       xp: map.get(key) || 0,
-      meta: ATTRIBUTE_META[key]
+      meta: ATTRIBUTE_META[key],
+      ...calcLevel(map.get(key) || 0)
     }))
   }, [profile.attributes])
 
   const radarData = useMemo(() => attributeStats.map(stat => ({ key: stat.key, label: stat.meta.short, value: stat.xp })), [attributeStats])
   const hasAbilityData = radarData.some(item => item.value > 0)
   const maxAbilityXp = useMemo(() => radarData.reduce((max, item) => Math.max(max, item.value), 0), [radarData])
+
+  const skillStats = useMemo(() => (profile.skills || []).map(skill => ({
+    ...skill,
+    ...calcLevel(skill.xp || 0)
+  })), [profile.skills])
 
   const historyList = useMemo(() => (profile.history || []).map((entry, index) => ({
     ...entry,
@@ -145,7 +164,16 @@ export default function GrowthPage() {
                   <div className="font-medium text-sm text-gray-800 dark:text-gray-100">{stat.meta.title}</div>
                   <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{stat.meta.description}</div>
                 </div>
-                <span className="text-[11px] text-gray-500">{stat.xp} XP</span>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                    <span>Lv {stat.level}</span>
+                    <span>{Math.round(stat.progress * 100)}%</span>
+                  </div>
+                  <div className="w-28 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
+                    <div className="h-full bg-blue-500" style={{ width: `${Math.round(stat.progress * 100)}%` }} />
+                  </div>
+                  <span className="text-[11px] text-gray-400">{stat.xp} XP</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -156,15 +184,24 @@ export default function GrowthPage() {
             <div className="text-sm font-medium">技能經驗</div>
             <div className="text-xs text-gray-500">依專案/技能累積 XP，排行由高到低</div>
           </div>
-          {profile.skills && profile.skills.length > 0 ? (
+          {skillStats.length > 0 ? (
             <div className="space-y-2">
-              {profile.skills.map(skill => (
-                <div key={skill.id} className="flex items-center justify-between gap-2 text-sm">
-                  <div className="flex flex-col">
-                    <span className="font-medium">{skill.title}</span>
-                    <span className="text-xs text-gray-500">ID：{skill.id}</span>
+              {skillStats.map(skill => (
+                <div key={skill.id} className="flex flex-col gap-1 rounded-md border border-dashed border-gray-200 dark:border-gray-800 p-3">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{skill.title}</span>
+                      <span className="text-xs text-gray-500">ID：{skill.id}</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{skill.xp} XP</span>
                   </div>
-                  <span className="text-xs text-gray-500">{skill.xp} XP</span>
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                    <span>Lv {skill.level}</span>
+                    <span>{Math.round(skill.progress * 100)}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
+                    <div className="h-full bg-green-500" style={{ width: `${Math.round(skill.progress * 100)}%` }} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -177,15 +214,15 @@ export default function GrowthPage() {
       <div className="rounded-md border border-gray-200 dark:border-gray-800 p-4 space-y-3">
         <div>
           <div className="text-sm font-medium">XP 獲取紀錄</div>
-          <div className="text-xs text-gray-500">最新 200 筆 XP 來源，協助檢查是否正確計入。</div>
+          <div className="text-xs text-gray-500">最新 10 筆 XP 來源，可滑動檢視。</div>
         </div>
         {historyList.length > 0 ? (
-          <div className="space-y-2">
+          <div className="flex gap-2 overflow-x-auto pb-3">
             {historyList.map(entry => (
               <div key={`${entry.idempotency_key || entry.idx}`}
-                className="rounded-md border border-dashed border-gray-200 dark:border-gray-800 px-3 py-2 text-xs sm:text-sm flex flex-col gap-1">
+                className="min-w-[220px] rounded-md border border-dashed border-gray-200 dark:border-gray-800 px-3 py-2 text-xs sm:text-sm flex flex-col gap-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium text-gray-800 dark:text-gray-100">{entry.task_title || '未命名任務'}</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-100 truncate">{entry.task_title || '未命名任務'}</span>
                   <span className="text-[11px] text-gray-500">+{entry.xp} XP</span>
                 </div>
                 <div className="text-[11px] text-gray-500 flex flex-wrap gap-2">
