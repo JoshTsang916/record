@@ -86,7 +86,19 @@ export default function TaskDetailsPage() {
     await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: 'done' }) })
     // award xp as manual
     const res = await fetch('/api/xp/award', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: 'manual', task_id: id, task_title: title, project_id: '', minutes, date: (function(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}` })() }) })
-    try { const j = await res.json(); if (j?.ok) show({ message: `+${Math.round(j.xp)} XP 角色；屬性 ${j.attributes?.join('/')}；技能 +${Math.round(j.xp)}` }) } catch { show({ message: `+${Math.round(minutes)} XP 已記錄` }) }
+    let toastMessage = `+${Math.round(minutes)} XP 已記錄`
+    if (res.ok) {
+      try {
+        const j = await res.json()
+        if (j?.ok) {
+          toastMessage = `+${Math.round(j.xp)} XP 角色；屬性 ${Array.isArray(j.attributes) && j.attributes.length > 0 ? j.attributes.join('/') : '無'}；技能 +${Math.round(j.xp)}`
+          if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('xp-updated'))
+        }
+      } catch {}
+    } else {
+      try { const err = await res.json(); if (err?.error) toastMessage = err.error } catch {}
+    }
+    show({ message: toastMessage })
   }
 
   async function onDelete() {

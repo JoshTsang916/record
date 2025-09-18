@@ -125,7 +125,7 @@ export default function RadarChart({ data, maxValue, levels = 4, className }: Ra
           y={label.y}
           textAnchor={label.textAnchor as any}
           dominantBaseline={label.dominantBaseline as any}
-          className="text-[11px] fill-current"
+          className="text-[9px] fill-current"
         >
           {label.label}
         </text>

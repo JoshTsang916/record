@@ -32,32 +32,32 @@ const ATTRIBUTE_META: Record<string, {
   description: string
 }> = {
   C: {
-    short: 'C · Curiosity',
+    short: 'C · 好奇心',
     title: 'Curiosity（好奇心）',
     description: '以強大的提問驅動深度學習，是探索者的啟動引擎。關鍵詞：閱讀、研究、學習、分析、提問、探索、課程、訪談、觀察、資料。'
   },
   R: {
-    short: 'R · Resilience',
+    short: 'R · 韌性',
     title: 'Resilience（韌性）',
     description: '建立可持續的身心基礎，是自我成長的穩定器。關鍵詞：健身、運動、訓練、營養、睡眠、冥想、休息、復盤、反思、挑戰。'
   },
   E: {
-    short: 'E · Expression',
+    short: 'E · 表達力',
     title: 'Expression（表達力）',
     description: '把內在價值與世界連結，是思想與受眾的溝通橋樑。關鍵詞：分享、敘事、演說、溝通、錄製、Podcast、影片、直播、剪輯、發表。'
   },
   A: {
-    short: 'A · Action',
+    short: 'A · 行動力',
     title: 'Action（行動力）',
     description: '將抽象想法化成產出，是理想世界的建造者。關鍵詞：建構、執行、實作、開發、程式、Code、設計、製作、VibeCoding。'
   },
   T: {
-    short: 'T · Thinking',
+    short: 'T · 思考力',
     title: 'Thinking（思考力）',
     description: '連結跨域知識並創造框架，是知識的煉金術士。關鍵詞：整合、思考、規劃、大綱、整理、筆記、心智圖、框架、結構、策略。'
   },
   EV: {
-    short: 'EV · Evolution',
+    short: 'EV · 進化力',
     title: 'Evolution（進化力）',
     description: '擁抱變化與迭代，是系統升級的首席架構師。關鍵詞：適應、優化、迭代、重構、學習新工具、自動化、流程、升級。'
   }

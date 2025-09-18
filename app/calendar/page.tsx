@@ -16,6 +16,10 @@ type Task = {
   created_at: string
   updated_at: string
   due_date?: string
+  completed_at?: string
+  recurring?: 'daily'
+  effective_status?: string
+  effective_completed_today?: boolean
   file_path: string
 }
 
@@ -87,10 +91,11 @@ export default function CalendarPage() {
   const byDate = useMemo(() => {
     const map = new Map<string, Task[]>()
     for (const t of tasks) {
-      const d = mode === 'completed' ? (t as any).completed_at || '' : t.due_date || ''
-      if (!d) continue
-      if (!map.has(d)) map.set(d, [])
-      map.get(d)!.push(t)
+      const rawDate = mode === 'completed' ? (t.completed_at || (t as any).completed_at || '') : (t.due_date || '')
+      const dateKey = rawDate ? String(rawDate).slice(0, 10) : ''
+      if (!dateKey) continue
+      if (!map.has(dateKey)) map.set(dateKey, [])
+      map.get(dateKey)!.push(t)
     }
     for (const [k, arr] of map.entries()) arr.sort((a,b) => (b.priority - a.priority) || a.title.localeCompare(b.title))
     return map
@@ -126,12 +131,47 @@ export default function CalendarPage() {
     }
   }
 
+  async function awardDailyXp(task: Task, minutes = 30): Promise<string> {
+    try {
+      const res = await fetch('/api/xp/award', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'task_done',
+          task_id: task.id,
+          task_title: task.title,
+          project_id: task.project_id || '',
+          minutes,
+          date: toDateStr(new Date())
+        })
+      })
+      if (!res.ok) return ''
+      const j = await res.json() as any
+      if (j?.ok) {
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('xp-updated'))
+        const xpValue = Math.round(Number(j.xp) || minutes)
+        const attrs = Array.isArray(j.attributes) && j.attributes.length > 0 ? `，屬性 ${j.attributes.join('/')}` : ''
+        return `+${xpValue} XP${attrs}`
+      }
+    } catch {}
+    return ''
+  }
+
   async function completeTask(task: Task) {
     setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
     setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'done' }) })
-    if (!res.ok) await load()
-    show({ message: `已完成：${task.title}`, actionLabel: '撤銷', onAction: async () => {
+    if (!res.ok) {
+      await load()
+      return
+    }
+    let xpNote = ''
+    if (task.recurring === 'daily') {
+      xpNote = await awardDailyXp(task)
+    }
+    await load()
+    const message = xpNote ? `已完成：${task.title}（${xpNote}）` : `已完成：${task.title}`
+    show({ message, actionLabel: '撤銷', onAction: async () => {
       setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo' } : t))
       setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo' } : t))
       await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'todo' }) })

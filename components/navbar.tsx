@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: () => void, onNewText?: () => void }) {
   const [queued, setQueued] = useState<number>(0)
@@ -29,6 +29,16 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
     return () => clearInterval(id)
   }, [])
 
+  const refreshXp = useCallback(async () => {
+    try {
+      const xp = await fetch('/api/xp/stats/profile', { cache: 'no-store' })
+      if (xp.ok) {
+        const j = await xp.json()
+        setLevel({ level: j.level || 1, progress: j.progress || 0 })
+      }
+    } catch {}
+  }, [])
+
   useEffect(() => {
     ;(async () => {
       try {
@@ -36,11 +46,17 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
         if (res.ok) {
           const j = await res.json(); setStreak({ streak: j.streak||0, week_count: j.week_count||0, week_minutes: j.week_minutes||0 })
         }
-        const xp = await fetch('/api/xp/stats/profile', { cache: 'no-store' })
-        if (xp.ok) { const j = await xp.json(); setLevel({ level: j.level||1, progress: j.progress||0 }) }
       } catch {}
+      await refreshXp()
     })()
-  }, [])
+  }, [refreshXp])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = () => { refreshXp() }
+    window.addEventListener('xp-updated', handler)
+    return () => { window.removeEventListener('xp-updated', handler) }
+  }, [refreshXp])
 
   async function retryQueue() {
     try {
