@@ -19,11 +19,27 @@ const SVG_SIZE = 220
 const CENTER = SVG_SIZE / 2
 const RADIUS = 90
 
+type PreparedRadar = {
+  max: number
+  points: Array<{ x: number, y: number }>
+  axisPoints: Array<{ x: number, y: number }>
+  levelPolygons: string[]
+  labels: Array<{
+    key: string
+    label: string
+    x: number
+    y: number
+    textAnchor: string
+    dominantBaseline: string
+  }>
+  polygonString: string
+}
+
 export default function RadarChart({ data, maxValue, levels = 4, className }: RadarChartProps) {
   const gradientId = useId().replace(/[:]/g, '')
-  const prepared = useMemo(() => {
+  const prepared = useMemo<PreparedRadar>(() => {
     if (!data || data.length === 0) {
-      return { points: [], valuePoints: [], axisPoints: [], labels: [], max: 0 }
+      return { max: 0, points: [], axisPoints: [], levelPolygons: [], labels: [], polygonString: '' }
     }
     const normalized = data.map(d => ({
       ...d,

@@ -5,7 +5,7 @@
 - 目前本地變更：
   - 成長頁面更新：C.R.E.A.T.E 雷達圖重做、加入能力說明與 XP 歷史列表
   - `/api/xp/stats/profile` 回傳能力/技能累計與最新 200 筆 XP 紀錄
-  - RadarChart 組件重構（軸線、網格、刻度與標籤位置調整）
+  - RadarChart 組件重構（軸線、網格、刻度與標籤位置調整；補強 TS 類型，避免 undefined）
   - 調整 `/api/tasks/save`，每日任務完成會更新 `completed_at`，重置為待做時清空
 - 尚未推送
 
