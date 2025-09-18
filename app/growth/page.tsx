@@ -4,6 +4,17 @@ import RadarChart from '@/components/radar-chart'
 
 type AttributeStat = { key: string, xp: number }
 type SkillStat = { id: string, title: string, xp: number }
+type HistoryEntry = {
+  date: string
+  ts: string
+  xp: number
+  source: string
+  task_title: string
+  project_id: string
+  project_title: string
+  attributes: string[]
+  idempotency_key?: string
+}
 
 type ProfileResponse = {
   total_xp: number
@@ -11,15 +22,45 @@ type ProfileResponse = {
   progress: number
   attributes: AttributeStat[]
   skills: SkillStat[]
+  history: HistoryEntry[]
 }
 
-const ATTRIBUTE_META: Record<string, { label: string, description: string }> = {
-  C: { label: 'C · 探索/學習', description: '閱讀、研究、課程等知識吸收活動' },
-  R: { label: 'R · 體能/恢復', description: '運動、睡眠、冥想與身體照護' },
-  E: { label: 'E · 表達/共享', description: '溝通、敘事、錄製、對外分享' },
-  A: { label: 'A · 實作/打造', description: '開發、設計、創作與系統建構' },
-  T: { label: 'T · 結構/策略', description: '整理、規劃、架構與策略思考' },
-  EV: { label: 'EV · 優化/進化', description: '調整、優化、迭代與自動化' }
+const ATTRIBUTE_ORDER = ['C','R','E','A','T','EV'] as const
+const ATTRIBUTE_META: Record<string, {
+  short: string
+  title: string
+  description: string
+}> = {
+  C: {
+    short: 'C · Curiosity',
+    title: 'Curiosity（好奇心）',
+    description: '以強大的提問驅動深度學習，是探索者的啟動引擎。關鍵詞：閱讀、研究、學習、分析、提問、探索、課程、訪談、觀察、資料。'
+  },
+  R: {
+    short: 'R · Resilience',
+    title: 'Resilience（韌性）',
+    description: '建立可持續的身心基礎，是自我成長的穩定器。關鍵詞：健身、運動、訓練、營養、睡眠、冥想、休息、復盤、反思、挑戰。'
+  },
+  E: {
+    short: 'E · Expression',
+    title: 'Expression（表達力）',
+    description: '把內在價值與世界連結，是思想與受眾的溝通橋樑。關鍵詞：分享、敘事、演說、溝通、錄製、Podcast、影片、直播、剪輯、發表。'
+  },
+  A: {
+    short: 'A · Action',
+    title: 'Action（行動力）',
+    description: '將抽象想法化成產出，是理想世界的建造者。關鍵詞：建構、執行、實作、開發、程式、Code、設計、製作、VibeCoding。'
+  },
+  T: {
+    short: 'T · Thinking',
+    title: 'Thinking（思考力）',
+    description: '連結跨域知識並創造框架，是知識的煉金術士。關鍵詞：整合、思考、規劃、大綱、整理、筆記、心智圖、框架、結構、策略。'
+  },
+  EV: {
+    short: 'EV · Evolution',
+    title: 'Evolution（進化力）',
+    description: '擁抱變化與迭代，是系統升級的首席架構師。關鍵詞：適應、優化、迭代、重構、學習新工具、自動化、流程、升級。'
+  }
 }
 
 const EMPTY_PROFILE: ProfileResponse = {
@@ -27,7 +68,8 @@ const EMPTY_PROFILE: ProfileResponse = {
   level: 1,
   progress: 0,
   attributes: [],
-  skills: []
+  skills: [],
+  history: []
 }
 
 export default function GrowthPage() {
@@ -47,14 +89,24 @@ export default function GrowthPage() {
     })()
   }, [])
 
-  const radarData = useMemo(() => {
-    if (!profile.attributes || profile.attributes.length === 0) return []
-    return profile.attributes
-      .filter(a => a.key in ATTRIBUTE_META)
-      .map(a => ({ key: a.key, label: ATTRIBUTE_META[a.key].label, value: a.xp }))
+  const attributeStats = useMemo(() => {
+    const map = new Map(profile.attributes.map(item => [item.key, item.xp]))
+    return ATTRIBUTE_ORDER.map(key => ({
+      key,
+      xp: map.get(key) || 0,
+      meta: ATTRIBUTE_META[key]
+    }))
   }, [profile.attributes])
 
+  const radarData = useMemo(() => attributeStats.map(stat => ({ key: stat.key, label: stat.meta.short, value: stat.xp })), [attributeStats])
+  const hasAbilityData = radarData.some(item => item.value > 0)
   const maxAbilityXp = useMemo(() => radarData.reduce((max, item) => Math.max(max, item.value), 0), [radarData])
+
+  const historyList = useMemo(() => (profile.history || []).map((entry, index) => ({
+    ...entry,
+    idx: index,
+    datetime: entry.ts ? new Date(entry.ts) : (entry.date ? new Date(`${entry.date}T00:00:00`) : null)
+  })), [profile.history])
 
   return (
     <div className="container py-6 space-y-6">
@@ -81,21 +133,21 @@ export default function GrowthPage() {
             <div className="text-sm font-medium">C.R.E.A.T.E 能力雷達</div>
             <div className="text-xs text-gray-500">依任務紀錄累計每個面向的 XP</div>
           </div>
-          {radarData.length > 0 ? (
-            <RadarChart data={radarData} maxValue={maxAbilityXp} />
+          {hasAbilityData ? (
+            <RadarChart data={radarData} maxValue={maxAbilityXp} className="w-full max-w-lg mx-auto" />
           ) : (
             <div className="text-xs text-gray-500">尚未累積能力資料</div>
           )}
-          <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
-            {Object.entries(ATTRIBUTE_META).map(([key, meta]) => {
-              const value = profile.attributes.find(a => a.key === key)?.xp || 0
-              return (
-                <li key={key} className="flex items-start justify-between gap-2">
-                  <span>{meta.label}</span>
-                  <span className="text-gray-500">{value} XP</span>
-                </li>
-              )
-            })}
+          <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+            {attributeStats.map(stat => (
+              <li key={stat.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div>
+                  <div className="font-medium text-sm text-gray-800 dark:text-gray-100">{stat.meta.title}</div>
+                  <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{stat.meta.description}</div>
+                </div>
+                <span className="text-[11px] text-gray-500">{stat.xp} XP</span>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -120,6 +172,42 @@ export default function GrowthPage() {
             <div className="text-xs text-gray-500">尚未累積任何技能 XP</div>
           )}
         </div>
+      </div>
+
+      <div className="rounded-md border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <div>
+          <div className="text-sm font-medium">XP 獲取紀錄</div>
+          <div className="text-xs text-gray-500">最新 200 筆 XP 來源，協助檢查是否正確計入。</div>
+        </div>
+        {historyList.length > 0 ? (
+          <div className="space-y-2">
+            {historyList.map(entry => (
+              <div key={`${entry.idempotency_key || entry.idx}`}
+                className="rounded-md border border-dashed border-gray-200 dark:border-gray-800 px-3 py-2 text-xs sm:text-sm flex flex-col gap-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-gray-800 dark:text-gray-100">{entry.task_title || '未命名任務'}</span>
+                  <span className="text-[11px] text-gray-500">+{entry.xp} XP</span>
+                </div>
+                <div className="text-[11px] text-gray-500 flex flex-wrap gap-2">
+                  <span>{entry.source}</span>
+                  {entry.project_title && <span>專案：{entry.project_title}</span>}
+                  {entry.datetime && <span>{entry.datetime.toLocaleString()}</span>}
+                </div>
+                {entry.attributes && entry.attributes.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {entry.attributes.map(attr => (
+                      <span key={attr} className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] bg-blue-500/10 text-blue-500 dark:bg-blue-400/10 dark:text-blue-300">
+                        {ATTRIBUTE_META[attr]?.short || attr}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500">目前沒有 XP 紀錄。</div>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 
 type RadarDataPoint = {
   key: string
@@ -12,64 +12,102 @@ type RadarChartProps = {
   data: RadarDataPoint[]
   maxValue?: number
   levels?: number
+  className?: string
 }
 
-export default function RadarChart({ data, maxValue, levels = 4 }: RadarChartProps) {
+const SVG_SIZE = 220
+const CENTER = SVG_SIZE / 2
+const RADIUS = 90
+
+export default function RadarChart({ data, maxValue, levels = 4, className }: RadarChartProps) {
+  const gradientId = useId().replace(/[:]/g, '')
   const prepared = useMemo(() => {
-    const filtered = data.filter(d => Number.isFinite(d.value))
-    const max = Math.max(maxValue || 0, ...filtered.map(d => d.value), 1)
-    const center = 100
-    const radius = 80
-    const angleStep = (2 * Math.PI) / filtered.length
-    const pointFor = (value: number, index: number) => {
-      const angle = -Math.PI / 2 + index * angleStep
-      const r = max === 0 ? 0 : (value / max) * radius
-      const x = center + r * Math.cos(angle)
-      const y = center + r * Math.sin(angle)
-      return `${x},${y}`
+    if (!data || data.length === 0) {
+      return { points: [], valuePoints: [], axisPoints: [], labels: [], max: 0 }
     }
-    const polygonPoints = filtered.map((d, i) => pointFor(d.value, i)).join(' ')
-    const levelPolygons = Array.from({ length: levels }, (_, levelIndex) => {
-      const ratio = (levelIndex + 1) / levels
-      const points = filtered.map((_, i) => pointFor(max * ratio, i)).join(' ')
-      return points
+    const normalized = data.map(d => ({
+      ...d,
+      value: Math.max(0, Number.isFinite(d.value) ? d.value : 0)
+    }))
+    const max = Math.max(maxValue || 0, ...normalized.map(d => d.value), 1)
+    const angleStep = (2 * Math.PI) / normalized.length
+
+    const polarPoint = (value: number, index: number) => {
+      const angle = -Math.PI / 2 + index * angleStep
+      const radius = max === 0 ? 0 : (value / max) * RADIUS
+      const x = CENTER + radius * Math.cos(angle)
+      const y = CENTER + radius * Math.sin(angle)
+      return { x, y }
+    }
+
+    const points = normalized.map((d, i) => polarPoint(d.value, i))
+    const axisPoints = normalized.map((_, i) => polarPoint(max, i))
+    const levelPolygons = Array.from({ length: levels }, (_, idx) => {
+      const ratio = (idx + 1) / levels
+      const layer = normalized.map((_, i) => polarPoint(max * ratio, i))
+      return layer.map(p => `${p.x},${p.y}`).join(' ')
     })
-    const labelPositions = filtered.map((d, i) => {
-      const angle = -Math.PI / 2 + i * angleStep
-      const r = radius + 12
-      const x = center + r * Math.cos(angle)
-      const y = center + r * Math.sin(angle)
-      return { ...d, x, y }
+    const labels = normalized.map((d, i) => {
+      const position = polarPoint(max * 1.1, i)
+      const dx = position.x - CENTER
+      const textAnchor = Math.abs(dx) < 5 ? 'middle' : dx > 0 ? 'start' : 'end'
+      return {
+        ...d,
+        ...position,
+        textAnchor,
+        dominantBaseline: position.y < CENTER - 5 ? 'auto' : position.y > CENTER + 5 ? 'hanging' : 'middle'
+      }
     })
-    return { filtered, max, polygonPoints, levelPolygons, labelPositions }
+    return {
+      max,
+      points,
+      axisPoints,
+      levelPolygons,
+      labels,
+      polygonString: points.map(p => `${p.x},${p.y}`).join(' ')
+    }
   }, [data, maxValue, levels])
 
-  if (prepared.filtered.length === 0) return <div className="text-xs text-gray-500">No ability data yet</div>
+  if (!prepared.points.length) {
+    return <div className="text-xs text-gray-500">尚未累積能力資料</div>
+  }
 
   return (
-    <svg viewBox="0 0 200 200" className="w-full max-w-sm mx-auto">
-      <g className="text-gray-300 dark:text-gray-600" stroke="currentColor" strokeWidth="0.5" fill="none">
-        {prepared.levelPolygons.map((points, idx) => (
-          <polygon key={idx} points={points} />
-        ))}
-      </g>
-      <polygon
-        points={prepared.polygonPoints}
-        fill="url(#radarGradient)"
-        stroke="rgb(59 130 246)"
-        strokeWidth="1.5"
-      />
+    <svg viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`} className={className || 'w-full max-w-md mx-auto'}>
       <defs>
-        <linearGradient id="radarGradient" x1="0" x2="1" y1="0" y2="1">
+        <linearGradient id={`radarGradient${gradientId}`} x1="0" x2="1" y1="0" y2="1">
           <stop offset="0%" stopColor="rgb(59 130 246)" stopOpacity="0.35" />
           <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0.35" />
         </linearGradient>
       </defs>
-      {prepared.labelPositions.map(d => (
-        <g key={d.key} transform={`translate(${d.x},${d.y})`}>
-          <circle r={2} fill="rgb(59 130 246)" />
-          <text x={4} y={4} className="text-[10px] fill-current" >{d.label}</text>
-        </g>
+      <g stroke="currentColor" strokeOpacity="0.2" fill="none">
+        {prepared.levelPolygons.map((points, idx) => (
+          <polygon key={`grid-${idx}`} points={points} />
+        ))}
+        {prepared.axisPoints.map((p, idx) => (
+          <line key={`axis-${idx}`} x1={CENTER} y1={CENTER} x2={p.x} y2={p.y} />
+        ))}
+      </g>
+      <polygon
+        points={prepared.polygonString}
+        fill={`url(#radarGradient${gradientId})`}
+        stroke="rgb(59 130 246)"
+        strokeWidth={1.5}
+      />
+      {prepared.points.map((p, idx) => (
+        <circle key={`point-${idx}`} cx={p.x} cy={p.y} r={3} fill="rgb(59 130 246)" />
+      ))}
+      {prepared.labels.map(label => (
+        <text
+          key={label.key}
+          x={label.x}
+          y={label.y}
+          textAnchor={label.textAnchor as any}
+          dominantBaseline={label.dominantBaseline as any}
+          className="text-[11px] fill-current"
+        >
+          {label.label}
+        </text>
       ))}
     </svg>
   )

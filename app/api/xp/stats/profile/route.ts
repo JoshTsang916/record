@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   try {
     const hasGitHub = !!process.env.GITHUB_REPO && !!process.env.GITHUB_TOKEN
     if (!hasGitHub) {
-      return NextResponse.json({ total_xp: 0, level: 1, progress: 0, attributes: [], skills: [] })
+      return NextResponse.json({ total_xp: 0, level: 1, progress: 0, attributes: [], skills: [], history: [] })
     }
     const today = new Date()
     const months = new Set<string>()
@@ -31,6 +31,16 @@ export async function GET(req: NextRequest) {
     let total = 0
     const attributeTotals: Record<string, number> = { C: 0, R: 0, E: 0, A: 0, T: 0, EV: 0 }
     const skillTotals = new Map<string, number>()
+    const historyEntries: Array<{
+      date: string
+      ts: string
+      xp: number
+      source: string
+      task_title: string
+      project_id: string
+      attributes: string[]
+      idempotency_key?: string
+    }> = []
     for (const ym of months) {
       const arr = await readMonth(ym)
       for (const entry of arr) {
@@ -44,6 +54,19 @@ export async function GET(req: NextRequest) {
         if (skillKey) {
           skillTotals.set(skillKey, (skillTotals.get(skillKey) || 0) + xp)
         }
+        const dateStr = typeof entry?.date === 'string' ? entry.date : ''
+        const tsRaw = typeof entry?.ts === 'string' ? entry.ts : ''
+        const ts = tsRaw || (dateStr ? `${dateStr}T00:00:00.000Z` : new Date().toISOString())
+        historyEntries.push({
+          date: dateStr,
+          ts,
+          xp,
+          source: typeof entry?.source === 'string' ? entry.source : 'manual',
+          task_title: typeof entry?.task_title === 'string' ? entry.task_title : '',
+          project_id: skillKey,
+          attributes: attrs,
+          idempotency_key: typeof entry?.idempotency_key === 'string' ? entry.idempotency_key : undefined
+        })
       }
     }
     let projectMap: Record<string, string> = {}
@@ -56,7 +79,14 @@ export async function GET(req: NextRequest) {
     const attributeList = attributeOrder.map(key => ({ key, xp: attributeTotals[key] || 0 }))
     const skills = Array.from(skillTotals.entries()).map(([id, xp]) => ({ id, title: projectMap[id] || id, xp }))
     skills.sort((a, b) => b.xp - a.xp)
-    return NextResponse.json({ total_xp: total, ...lv, attributes: attributeList, skills })
+    const history = historyEntries
+      .map(entry => ({
+        ...entry,
+        project_title: entry.project_id ? (projectMap[entry.project_id] || entry.project_id) : '',
+      }))
+      .sort((a, b) => (b.ts || '').localeCompare(a.ts || ''))
+      .slice(0, 200)
+    return NextResponse.json({ total_xp: total, ...lv, attributes: attributeList, skills, history })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }
