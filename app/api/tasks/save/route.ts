@@ -25,11 +25,19 @@ export async function POST(req: NextRequest) {
     if (typeof position === 'number') file.frontmatter.position = position
     if (typeof project_id === 'string') file.frontmatter.project_id = project_id
     if (typeof due_date === 'string') file.frontmatter.due_date = due_date
-    if (typeof completed_at === 'string') file.frontmatter.completed_at = completed_at
-    else if (typeof status === 'string' && status === 'done' && prevStatus !== 'done' && !file.frontmatter.completed_at) {
-      file.frontmatter.completed_at = nowIso
-    }
     if (typeof recurring === 'string') file.frontmatter.recurring = recurring === 'daily' ? 'daily' : undefined
+    const isDaily = file.frontmatter.recurring === 'daily'
+    const nextStatus = file.frontmatter.status
+    if (typeof completed_at === 'string') file.frontmatter.completed_at = completed_at
+    else if (nextStatus === 'done') {
+      if (isDaily) {
+        file.frontmatter.completed_at = nowIso
+      } else if (prevStatus !== 'done' || !file.frontmatter.completed_at) {
+        file.frontmatter.completed_at = nowIso
+      }
+    } else if (isDaily) {
+      file.frontmatter.completed_at = undefined
+    }
     if (typeof focus_exclude === 'boolean') file.frontmatter.focus_exclude = focus_exclude
     if (typeof estimate === 'number') file.frontmatter.estimate = estimate
     if (typeof assignee === 'string') file.frontmatter.assignee = assignee
