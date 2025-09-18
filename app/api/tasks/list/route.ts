@@ -38,19 +38,21 @@ export async function GET(req: NextRequest) {
     if (noDateOnly && !completedOnly) {
       list = list.filter(t => !t.due_date)
     } else if (from || to) {
-      const fromTime = from ? Date.parse(from) : Number.NEGATIVE_INFINITY
-      const toTime = to ? Date.parse(to) : Number.POSITIVE_INFINITY
       if (completedOnly) {
         list = list.filter(t => {
-          if (!t.completed_at) return false
-          const d = Date.parse(t.completed_at)
-          return d >= fromTime && d <= toTime
+          const s = (t.completed_at || '').slice(0,10)
+          if (!s) return false
+          const geFrom = from ? s >= from : true
+          const leTo = to ? s <= to : true
+          return geFrom && leTo
         })
       } else {
         list = list.filter(t => {
           if (!t.due_date) return false
-          const d = Date.parse(t.due_date)
-          return d >= fromTime && d <= toTime
+          const s = String(t.due_date).slice(0,10)
+          const geFrom = from ? s >= from : true
+          const leTo = to ? s <= to : true
+          return geFrom && leTo
         })
       }
     }
