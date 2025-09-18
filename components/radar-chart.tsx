@@ -17,7 +17,8 @@ type RadarChartProps = {
 
 const SVG_SIZE = 220
 const CENTER = SVG_SIZE / 2
-const RADIUS = 90
+const RADIUS = 75
+const LABEL_RATIO = 0.92
 
 type PreparedRadar = {
   max: number
@@ -63,15 +64,19 @@ export default function RadarChart({ data, maxValue, levels = 4, className }: Ra
       const layer = normalized.map((_, i) => polarPoint(max * ratio, i))
       return layer.map(p => `${p.x},${p.y}`).join(' ')
     })
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
     const labels = normalized.map((d, i) => {
-      const position = polarPoint(max * 1.1, i)
+      const position = polarPoint(max * LABEL_RATIO, i)
       const dx = position.x - CENTER
-      const textAnchor = Math.abs(dx) < 5 ? 'middle' : dx > 0 ? 'start' : 'end'
+      const textAnchor = Math.abs(dx) < 8 ? 'middle' : dx > 0 ? 'start' : 'end'
+      const x = clamp(position.x, 18, SVG_SIZE - 18)
+      const y = clamp(position.y, 16, SVG_SIZE - 16)
       return {
         ...d,
-        ...position,
+        x,
+        y,
         textAnchor,
-        dominantBaseline: position.y < CENTER - 5 ? 'auto' : position.y > CENTER + 5 ? 'hanging' : 'middle'
+        dominantBaseline: y < CENTER - 8 ? 'auto' : y > CENTER + 8 ? 'hanging' : 'middle'
       }
     })
     return {

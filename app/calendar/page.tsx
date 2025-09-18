@@ -38,7 +38,7 @@ export default function CalendarPage() {
 
   const { startDate, endDate, days } = useMemo(() => makeMonth(yearMonth.y, yearMonth.m), [yearMonth])
 
-  useEffect(() => { load() }, [yearMonth, projectId, includeDone, statusFilter, tagFilter])
+  useEffect(() => { load() }, [yearMonth, projectId, includeDone, statusFilter, tagFilter, mode])
   async function load() {
     setLoading(true)
     try {
