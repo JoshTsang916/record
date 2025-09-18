@@ -82,11 +82,9 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
             <Button variant="outline" onClick={() => { if (onNewText) onNewText(); else if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-new-text')) }}>New (text)</Button>
             <Button onClick={() => { if (onRecordClick) onRecordClick(); else if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-record')) }}>Record</Button>
             <Button onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-focus')) }}>專注</Button>
-            <Button variant="ghost" onClick={retryQueue}>Retry{queued ? ` (${queued})` : ''}</Button>
           </div>
           {/* 第三行（手機）：導航 */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href="/"><Button variant="outline">首頁</Button></Link>
             <Link href="/board"><Button variant="outline">看板</Button></Link>
             <Link href="/calendar"><Button variant="outline">日曆</Button></Link>
             <Link href="/projects"><Button variant="outline">專案</Button></Link>
@@ -102,7 +100,7 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
             <button className="relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm" onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
               🔥 {streak.streak}
             </button>
-            <Button variant="ghost" onClick={toggleTheme}>{dark ? '亮色' : '夜間'}</Button>
+            <Button variant="ghost" aria-label={dark ? '切換為亮色' : '切換為夜間'} onClick={toggleTheme}>{dark ? '🌞' : '🌙'}</Button>
           </div>
         </div>
         {openPanel && (
