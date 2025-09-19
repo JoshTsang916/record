@@ -25,6 +25,8 @@ function statusZh(s: TaskStatus) {
   }
 }
 
+const effectiveStatus = (t?: Task) => ((t as any)?.effective_status as TaskStatus | undefined) || t?.status || 'todo'
+
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -53,14 +55,13 @@ export default function ProjectDetailPage() {
   }
 
   const grouped = useMemo(() => {
-    const eff = (t: any) => (t.effective_status || t.status)
-    const filter = (arr: Task[]) => arr.filter(t => (eff(t)!=='archived') && (!q || t.title.toLowerCase().includes(q.toLowerCase()))).sort((a,b)=> (a.position-b.position) || (b.priority-a.priority) || b.updated_at.localeCompare(a.updated_at))
+    const filter = (arr: Task[]) => arr.filter(t => (effectiveStatus(t)!=='archived') && (!q || t.title.toLowerCase().includes(q.toLowerCase()))).sort((a,b)=> (a.position-b.position) || (b.priority-a.priority) || b.updated_at.localeCompare(a.updated_at))
     return {
-      backlog: filter(tasks.filter(t=>eff(t)==='backlog')),
-      todo: filter(tasks.filter(t=>eff(t)==='todo')),
-      in_progress: filter(tasks.filter(t=>eff(t)==='in_progress')),
-      blocked: filter(tasks.filter(t=>eff(t)==='blocked')),
-      done: filter(tasks.filter(t=>eff(t)==='done')),
+      backlog: filter(tasks.filter(t=>effectiveStatus(t)==='backlog')),
+      todo: filter(tasks.filter(t=>effectiveStatus(t)==='todo')),
+      in_progress: filter(tasks.filter(t=>effectiveStatus(t)==='in_progress')),
+      blocked: filter(tasks.filter(t=>effectiveStatus(t)==='blocked')),
+      done: filter(tasks.filter(t=>effectiveStatus(t)==='done')),
     }
   }, [tasks, q])
 
@@ -88,12 +89,12 @@ export default function ProjectDetailPage() {
 
   async function completeTask(taskId: string) {
     const target = tasks.find(x => x.id===taskId)
-    const prevStatus = (target as any)?.effective_status || target?.status || 'todo'
+    const prevStatus = effectiveStatus(target as Task)
     setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: 'done', effective_status: 'done', effective_completed_today: true } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: 'done' }) })
     if (!res.ok) await load()
     show({ message: `已完成：${target?.title || ''}`, actionLabel: '撤銷', onAction: async () => {
-      setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: prevStatus as any, effective_status: prevStatus as any, effective_completed_today: false } : t))
+      setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: prevStatus, effective_status: prevStatus, effective_completed_today: false } : t))
       await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: prevStatus }) })
     } })
   }
