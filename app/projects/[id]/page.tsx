@@ -88,7 +88,7 @@ export default function ProjectDetailPage() {
 
   async function completeTask(taskId: string) {
     const target = tasks.find(x => x.id===taskId)
-    const prevStatus = (target?.effective_status as any) || target?.status || 'todo'
+    const prevStatus = (target as any)?.effective_status || target?.status || 'todo'
     setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: 'done', effective_status: 'done', effective_completed_today: true } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: 'done' }) })
     if (!res.ok) await load()
