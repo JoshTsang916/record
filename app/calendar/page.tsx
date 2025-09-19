@@ -278,7 +278,7 @@ export default function CalendarPage() {
           const dueList = tasksByDate.get(key) || []
           const completedList = completedByDate.get(key) || []
           const list = mode === 'completed' ? completedList : dueList
-          const displayList = mode === 'completed' ? list : (expandedDays.has(key) ? list : list.slice(0, 4))
+          const displayList = mode === 'completed' ? list : (expandedDays.has(key) ? list : (list as Task[]).slice(0, 4))
           const enableDrag = mode === 'due'
           return (
             <div
@@ -307,7 +307,7 @@ export default function CalendarPage() {
               </div>
               <div className="flex flex-col gap-1">
                 {mode === 'completed'
-                  ? displayList.map(item => (
+                  ? (displayList as CompletionLog[]).map(item => (
                       <CompletedBadge key={`${item.idempotency_key || item.date}-${item.task_id || item.task_title}`} item={item} />
                     ))
                   : displayList.map(t => (
