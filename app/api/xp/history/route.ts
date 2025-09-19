@@ -11,7 +11,7 @@ async function readMonth(ym: string) {
   try {
     const body = await getContent(`game/xp/${ym}.jsonl`)
     if (!body) return []
-    return body.split(/\r?\n/).filter(Boolean).map(line => {
+    return body.split(/\r?\n/).filter(Boolean).map((line: string) => {
       try { return JSON.parse(line) } catch { return null }
     }).filter(Boolean)
   } catch {
