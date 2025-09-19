@@ -86,9 +86,20 @@ export async function POST(req: NextRequest) {
       conf = tr.confidence
     }
 
+    let normalizedContent = (transcriptText || '').trim()
+    let finalTitle = title.trim()
+    if (!finalTitle) {
+      const { title: derivedTitle, body: derivedBody } = deriveTitleAndBody(normalizedContent)
+      finalTitle = derivedTitle || 'Untitled'
+      normalizedContent = derivedBody
+    }
+    if (!finalTitle) finalTitle = 'Untitled'
+    title = finalTitle
+    transcriptText = normalizedContent
+
     const fm: IdeaFrontmatter = {
       id,
-      title: title || (transcriptText ? transcriptText.split('\n')[0].slice(0, 80) : 'Untitled'),
+      title: finalTitle,
       created_at: nowIso,
       updated_at: nowIso,
       status: (status as any) || 'draft',
@@ -157,6 +168,29 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 500 })
   }
+}
+
+function deriveTitleAndBody(text: string): { title: string, body: string } {
+  const trimmed = (text || '').trim()
+  if (!trimmed) return { title: '', body: '' }
+  const separators = ['。', '！', '？', '!', '?', '\n']
+  let idx = -1
+  let includeChar = true
+  for (const sep of separators) {
+    const pos = trimmed.indexOf(sep)
+    if (pos !== -1 && (idx === -1 || pos < idx)) {
+      idx = pos
+      includeChar = sep !== '\n'
+    }
+  }
+  if (idx !== -1) {
+    const title = trimmed.slice(0, includeChar ? idx + 1 : idx).trim()
+    const body = trimmed.slice(idx + 1).trimStart()
+    if (title) return { title, body }
+  }
+  const snippet = trimmed.slice(0, 10).trim()
+  const body = trimmed.slice(snippet.length).trimStart()
+  return { title: snippet || trimmed, body }
 }
 
 async function fetchIndex(): Promise<string> {
