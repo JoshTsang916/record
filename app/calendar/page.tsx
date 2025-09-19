@@ -23,6 +23,18 @@ type Task = {
   file_path: string
 }
 
+type CompletionLog = {
+  date: string
+  ts: string
+  xp: number
+  source: string
+  task_id: string
+  task_title: string
+  project_id: string
+  attributes: string[]
+  idempotency_key?: string
+}
+
 export default function CalendarPage() {
   const [yearMonth, setYearMonth] = useState(() => {
     const d = new Date()
@@ -30,6 +42,7 @@ export default function CalendarPage() {
   })
   const [tasks, setTasks] = useState<Task[]>([])
   const [noDateTasks, setNoDateTasks] = useState<Task[]>([])
+  const [completedLogs, setCompletedLogs] = useState<CompletionLog[]>([])
   const [projects, setProjects] = useState<Array<{ id: string, title: string }>>([])
   const [projectId, setProjectId] = useState('')
   const [includeDone, setIncludeDone] = useState(false)
@@ -55,25 +68,20 @@ export default function CalendarPage() {
           }
         } catch {}
       }
-      const qs = new URLSearchParams()
-      qs.set('from', startDate)
-      qs.set('to', endDate)
-      if (projectId) qs.set('project_id', projectId)
       if (mode === 'due') {
+        const qs = new URLSearchParams()
+        qs.set('from', startDate)
+        qs.set('to', endDate)
+        if (projectId) qs.set('project_id', projectId)
         if (statusFilter) qs.set('status', statusFilter)
         if (tagFilter) qs.set('tag', tagFilter)
         if (includeDone) qs.set('include_done', 'true')
-      } else {
-        // completed mode ignores includeDone/status; only fetch by completed date
-        if (tagFilter) qs.set('tag', tagFilter)
-        qs.set('completed_only', 'true')
-      }
-      const res = await fetch(`/api/tasks/list?${qs.toString()}`, { cache: 'no-store' })
-      if (res.ok) {
-        const j = await res.json(); setTasks(j.items || [])
-      }
-      // fetch no-date only in due mode
-      if (mode === 'due') {
+        const res = await fetch(`/api/tasks/list?${qs.toString()}`, { cache: 'no-store' })
+        if (res.ok) {
+          const j = await res.json(); setTasks(j.items || [])
+        } else {
+          setTasks([])
+        }
         const qs2 = new URLSearchParams()
         qs2.set('nodate', 'true')
         if (projectId) qs2.set('project_id', projectId)
@@ -83,15 +91,31 @@ export default function CalendarPage() {
         const res2 = await fetch(`/api/tasks/list?${qs2.toString()}`, { cache: 'no-store' })
         if (res2.ok) {
           const j2 = await res2.json(); setNoDateTasks(j2.items || [])
+        } else {
+          setNoDateTasks([])
+        }
+        setCompletedLogs([])
+      } else {
+        setTasks([])
+        setNoDateTasks([])
+        const qs = new URLSearchParams()
+        qs.set('from', startDate)
+        qs.set('to', endDate)
+        qs.set('source', 'task_done')
+        const res = await fetch(`/api/xp/history?${qs.toString()}`, { cache: 'no-store' })
+        if (res.ok) {
+          const j = await res.json(); setCompletedLogs(j.items || [])
+        } else {
+          setCompletedLogs([])
         }
       }
     } finally { setLoading(false) }
   }
 
-  const byDate = useMemo(() => {
+  const tasksByDate = useMemo(() => {
     const map = new Map<string, Task[]>()
     for (const t of tasks) {
-      const rawDate = mode === 'completed' ? (t.completed_at || (t as any).completed_at || '') : (t.due_date || '')
+      const rawDate = t.due_date || ''
       const dateKey = rawDate ? String(rawDate).slice(0, 10) : ''
       if (!dateKey) continue
       if (!map.has(dateKey)) map.set(dateKey, [])
@@ -99,7 +123,19 @@ export default function CalendarPage() {
     }
     for (const [k, arr] of map.entries()) arr.sort((a,b) => (b.priority - a.priority) || a.title.localeCompare(b.title))
     return map
-  }, [tasks, mode])
+  }, [tasks])
+
+  const completedByDate = useMemo(() => {
+    const map = new Map<string, CompletionLog[]>()
+    for (const item of completedLogs) {
+      const dateKey = (item.date || '').slice(0,10)
+      if (!dateKey) continue
+      if (!map.has(dateKey)) map.set(dateKey, [])
+      map.get(dateKey)!.push(item)
+    }
+    for (const [key, arr] of map.entries()) arr.sort((a,b) => (a.task_title || '').localeCompare(b.task_title || ''))
+    return map
+  }, [completedLogs])
 
   function prevMonth() {
     setYearMonth(({ y, m }) => m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })
@@ -158,8 +194,8 @@ export default function CalendarPage() {
   }
 
   async function completeTask(task: Task) {
-    setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
-    setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done' } : t))
+    setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done', effective_status: 'done', effective_completed_today: true, completed_at: new Date().toISOString() } : t))
+    setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'done', effective_status: 'done', effective_completed_today: true, completed_at: new Date().toISOString() } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'done' }) })
     if (!res.ok) {
       await load()
@@ -172,8 +208,8 @@ export default function CalendarPage() {
     await load()
     const message = xpNote ? `已完成：${task.title}（${xpNote}）` : `已完成：${task.title}`
     show({ message, actionLabel: '撤銷', onAction: async () => {
-      setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo' } : t))
-      setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo' } : t))
+      setTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo', effective_status: 'todo', effective_completed_today: false } : t))
+      setNoDateTasks(prev => prev.map(t => t.id===task.id ? { ...t, status: 'todo', effective_status: 'todo', effective_completed_today: false } : t))
       await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: task.id, status: 'todo' }) })
     } })
   }
@@ -238,34 +274,49 @@ export default function CalendarPage() {
         ))}
         {days.map((d, idx) => {
           const key = d.dateStr
-          const list = byDate.get(key) || []
           const isToday = key === toDateStr(new Date())
+          const dueList = tasksByDate.get(key) || []
+          const completedList = completedByDate.get(key) || []
+          const list = mode === 'completed' ? completedList : dueList
+          const displayList = mode === 'completed' ? list : (expandedDays.has(key) ? list : list.slice(0, 4))
+          const enableDrag = mode === 'due'
           return (
-            <div key={idx} className={`min-h-[120px] bg-white dark:bg-gray-950 p-2 ${isToday ? 'ring-2 ring-blue-500' : ''}`} onDragOver={onDragOver} onDrop={(e)=>onDrop(e, key)}>
+            <div
+              key={idx}
+              className={`min-h-[120px] bg-white dark:bg-gray-950 p-2 ${isToday ? 'ring-2 ring-blue-500' : ''}`}
+              onDragOver={enableDrag ? onDragOver : undefined}
+              onDrop={enableDrag ? (e)=>onDrop(e, key) : undefined}
+            >
               <div className={`text-xs mb-1 flex items-center justify-between ${d.inMonth ? '' : 'text-gray-400'}`}>
                 <span>{d.day}</span>
-                <button
-                  className="text-[11px] px-1 rounded border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-                  title="新增當日任務"
-                  onClick={async (e)=>{
-                    e.preventDefault();
-                    const title = window.prompt('任務標題？') || ''
-                    if (!title.trim()) return
-                    const body: any = { title, status: 'todo', due_date: key }
-                    if (projectId) body.project_id = projectId
-                    const res = await fetch('/api/tasks/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                    if (res.ok) await load(); else alert('建立失敗')
-                  }}
-                >+ 任務</button>
+                {mode === 'due' && (
+                  <button
+                    className="text-[11px] px-1 rounded border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                    title="新增當日任務"
+                    onClick={async (e)=>{
+                      e.preventDefault();
+                      const title = window.prompt('任務標題？') || ''
+                      if (!title.trim()) return
+                      const body: any = { title, status: 'todo', due_date: key }
+                      if (projectId) body.project_id = projectId
+                      const res = await fetch('/api/tasks/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                      if (res.ok) await load(); else alert('建立失敗')
+                    }}
+                  >+ 任務</button>
+                )}
               </div>
               <div className="flex flex-col gap-1">
-                {(expandedDays.has(key) ? list : list.slice(0, 4)).map(t => (
-                  <TaskChip key={t.id} task={t} onDragStart={onDragStart} onComplete={completeTask} onDelete={deleteTask} />
-                ))}
-                {list.length > 4 && !expandedDays.has(key) && (
-                  <button className="text-[11px] text-blue-600 dark:text-blue-400 underline w-fit" onClick={()=>setExpandedDays(s => new Set(s).add(key))}>+{list.length - 4} more</button>
+                {mode === 'completed'
+                  ? displayList.map(item => (
+                      <CompletedBadge key={`${item.idempotency_key || item.date}-${item.task_id || item.task_title}`} item={item} />
+                    ))
+                  : displayList.map(t => (
+                      <TaskChip key={t.id} task={t} onDragStart={onDragStart} onComplete={completeTask} onDelete={deleteTask} />
+                    ))}
+                {mode === 'due' && dueList.length > 4 && !expandedDays.has(key) && (
+                  <button className="text-[11px] text-blue-600 dark:text-blue-400 underline w-fit" onClick={()=>setExpandedDays(s => new Set(s).add(key))}>+{dueList.length - 4} more</button>
                 )}
-                {expandedDays.has(key) && list.length > 4 && (
+                {mode === 'due' && expandedDays.has(key) && dueList.length > 4 && (
                   <button className="text-[11px] text-blue-600 dark:text-blue-400 underline w-fit" onClick={()=>setExpandedDays(s => { const n = new Set(s); n.delete(key); return n })}>收合</button>
                 )}
               </div>
@@ -298,6 +349,15 @@ export default function CalendarPage() {
   )
 }
 
+function CompletedBadge({ item }: { item: CompletionLog }) {
+  return (
+    <div className="text-[11px] px-2 py-1 rounded border border-blue-300/60 dark:border-blue-400/40 bg-blue-50/50 dark:bg-blue-400/10 text-blue-700 dark:text-blue-200 flex items-center justify-between gap-2" title={item.task_title}>
+      <span className="truncate">{item.task_title || '每日任務'}</span>
+      <span className="shrink-0 text-[10px]">+{item.xp} XP</span>
+    </div>
+  )
+}
+
 function TaskChip({ task, onDragStart, onComplete, onDelete }: { task: Task, onDragStart: (e: React.DragEvent, id: string) => void, onComplete: (t: Task) => void, onDelete: (t: Task) => void }) {
   const color = useMemo(() => dueColor(task), [task])
   return (
@@ -314,8 +374,9 @@ function TaskChip({ task, onDragStart, onComplete, onDelete }: { task: Task, onD
 }
 
 function dueColor(task: Task) {
+  const status = (task.effective_status as any) || task.status
   if (!task.due_date) return { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700' }
-  if (task.status === 'done') return { bg: 'bg-gray-100 opacity-60 dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700' }
+  if (status === 'done') return { bg: 'bg-gray-100 opacity-60 dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700' }
   const today = new Date(); today.setHours(0,0,0,0)
   const d = new Date(task.due_date)
   const diff = Math.floor((d.getTime() - today.getTime()) / (1000*60*60*24))

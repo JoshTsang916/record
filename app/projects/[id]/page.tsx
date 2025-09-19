@@ -88,12 +88,12 @@ export default function ProjectDetailPage() {
 
   async function completeTask(taskId: string) {
     const target = tasks.find(x => x.id===taskId)
-    const prevStatus = target?.status || 'todo'
-    setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: 'done' } : t))
+    const prevStatus = (target?.effective_status as any) || target?.status || 'todo'
+    setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: 'done', effective_status: 'done', effective_completed_today: true } : t))
     const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: 'done' }) })
     if (!res.ok) await load()
     show({ message: `已完成：${target?.title || ''}`, actionLabel: '撤銷', onAction: async () => {
-      setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: prevStatus } : t))
+      setTasks(prev => prev.map(t => t.id===taskId ? { ...t, status: prevStatus as any, effective_status: prevStatus as any, effective_completed_today: false } : t))
       await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: taskId, status: prevStatus }) })
     } })
   }
@@ -166,11 +166,11 @@ export default function ProjectDetailPage() {
             <div className="p-3 flex flex-col gap-2">
               {(grouped as any)[col].map((t: Task) => (
                 <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
-                  <div draggable onDragStart={(e)=>onDragStart(e, t.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${t.status==='done' ? 'opacity-60' : ''}`}>
+                  <div draggable onDragStart={(e)=>onDragStart(e, t.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${eff(t)==='done' ? 'opacity-60' : ''}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium break-words whitespace-pre-wrap hover:underline">{t.title}</div>
-                        <div className="mt-1 text-xs text-gray-500">優先度 {t.priority}</div>
+                      <div className="mt-1 text-xs text-gray-500">優先度 {t.priority}</div>
                       </div>
                       <div className="shrink-0 flex gap-1">
                         <button title="完成" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); completeTask(t.id) }} className="h-7 px-2 rounded-md border text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">完成</button>

@@ -6,7 +6,9 @@
   - 成長頁面更新：C.R.E.A.T.E 雷達圖重做（縮小半徑、標籤使用首字母+中文）、加入能力說明與 XP 等級/進度條、技能等級與 XP 歷史滑動列表
   - `/api/xp/stats/profile` 回傳能力/技能累計與最新 10 筆 XP 紀錄
   - RadarChart 組件重構（軸線、網格、標籤邊界與型別安全補強）
-  - Calendar 完成模式重新載入資料並記錄每日任務 XP；Navbar 監聽 XP 更新事件即時刷新進度條
+  - 新增 `/api/xp/history` 並讓日曆完成視圖使用 XP 紀錄 chip 呈現歷史完成日
+  - Calendar due/completed 模式分離：完成視圖顯示 XP 紀錄、due 視圖維持拖曳；Navbar 監聽 XP 更新事件即時刷新進度條
+  - 任務列表與專案看板改用 `effective_status` 判斷樣式，避免每日任務隔天維持灰色
   - 調整 `/api/tasks/save`，每日任務完成會更新 `completed_at`，重置為待做時清空
 - 尚未推送
 

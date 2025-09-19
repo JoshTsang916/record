@@ -391,9 +391,11 @@ export default function HomePage() {
               </Card>
             </Link>
           ))}
-          {(view==='tasks' || view==='all') && filteredTasks.map(t => (
+          {(view==='tasks' || view==='all') && filteredTasks.map(t => {
+            const effStatus = (t.effective_status as any) || t.status
+            return (
             <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
-              <Card className={`hover:shadow-md transition ${t.status==='done' ? 'opacity-60' : ''}`}>
+              <Card className={`hover:shadow-md transition ${effStatus==='done' ? 'opacity-60' : ''}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -405,12 +407,12 @@ export default function HomePage() {
                         title="完成"
                         onClick={async (e) => {
                           e.preventDefault(); e.stopPropagation();
-                          const prevStatus = t.status
-                          setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: 'done' } : x))
+                          const prevStatus = effStatus
+                          setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: 'done', effective_status: 'done', effective_completed_today: true } : x))
                           const res = await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, status: 'done' }) })
                           if (!res.ok) await load()
                           show({ message: `已完成：${t.title}`, actionLabel: '撤銷', onAction: async () => {
-                            setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: prevStatus } : x))
+                            setTasks(curr => curr.map(x => x.id===t.id ? { ...x, status: prevStatus, effective_status: prevStatus, effective_completed_today: false } : x))
                             await fetch('/api/tasks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, status: prevStatus }) })
                           } })
                         }}
@@ -441,7 +443,7 @@ export default function HomePage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">優先度：{t.priority}・狀態：{taskStatusZh(t.status)}{t.due_date ? `・到期：${t.due_date}` : ''}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">優先度：{t.priority}・狀態：{taskStatusZh(effStatus)}{t.due_date ? `・到期：${t.due_date}` : ''}</div>
                   {(t.tags||[]).length > 0 ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {t.tags.map(tagName => (
@@ -451,10 +453,10 @@ export default function HomePage() {
                   ) : (
                     <div className="mt-2 text-xs text-gray-500">Tags:</div>
                   )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+              </CardContent>
+            </Card>
+          </Link>
+          )})}
         </div>
       </div>
       <RecorderModal open={open} onClose={() => setOpen(false)} onSaved={() => onSaved()} />
