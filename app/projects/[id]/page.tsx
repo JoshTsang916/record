@@ -167,7 +167,7 @@ export default function ProjectDetailPage() {
             <div className="p-3 flex flex-col gap-2">
               {(grouped as any)[col].map((t: Task) => (
                 <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
-                  <div draggable onDragStart={(e)=>onDragStart(e, t.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${eff(t)==='done' ? 'opacity-60' : ''}`}>
+                  <div draggable onDragStart={(e)=>onDragStart(e, t.id)} className={`rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 cursor-move max-w-full overflow-hidden ${effectiveStatus(t)==='done' ? 'opacity-60' : ''}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium break-words whitespace-pre-wrap hover:underline">{t.title}</div>
