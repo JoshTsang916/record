@@ -10,7 +10,7 @@
   - Calendar due/completed 模式分離：完成視圖顯示 XP 紀錄、due 視圖維持拖曳；Navbar 監聽 XP 更新事件即時刷新進度條
   - 任務列表與專案看板改用 `effective_status` 判斷樣式，避免每日任務隔天維持灰色
   - 調整 `/api/tasks/save`，每日任務完成會更新 `completed_at`，重置為待做時清空
-- 尚未推送
+- 已推送
 
 ## 待辦與需求
 1. 確認每日任務 XP 自動加總流程是否需要額外撤銷/重算機制。
