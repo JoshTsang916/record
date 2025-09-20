@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react'
 
 export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: () => void, onNewText?: () => void }) {
   const [queued, setQueued] = useState<number>(0)
-  const [dark, setDark] = useState(false)
   const [streak, setStreak] = useState<{ streak: number, week_count: number, week_minutes: number }>({ streak: 0, week_count: 0, week_minutes: 0 })
   const [openPanel, setOpenPanel] = useState(false)
   const [level, setLevel] = useState<{ level: number, progress: number }>({ level: 1, progress: 0 })
@@ -15,7 +14,6 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
     // theme init
     const pref = localStorage.getItem('theme')
     const isDark = pref ? pref === 'dark' : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-    setDark(isDark)
     document.documentElement.classList.toggle('dark', isDark)
 
     const refresh = () => {
@@ -78,36 +76,32 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
     } catch {}
   }
 
-  function toggleTheme() {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle('dark', next)
-    localStorage.setItem('theme', next ? 'dark' : 'light')
-  }
-
   return (
-    <nav className="w-full border-b border-gray-200 dark:border-gray-800">
-      <div className="container py-2 sm:h-14 sm:py-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <nav className="w-full border-b border-gray-200 dark:border-gray-800 overflow-x-hidden">
+      <div className="relative container w-full py-2 sm:h-14 sm:py-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         {/* 第一行：品牌（手機置頂） */}
         <Link href="/" className="font-semibold">Idea Vault</Link>
 
         {/* 手機：分三行群組；桌機：同一行靠右 */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 w-full">
           {/* 第二行（手機）：新增/錄音/重試 */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <Button variant="outline" onClick={() => { if (onNewText) onNewText(); else if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-new-text')) }}>New (text)</Button>
             <Button onClick={() => { if (onRecordClick) onRecordClick(); else if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-record')) }}>Record</Button>
-            <Button onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-focus')) }}>專注</Button>
+            <Button
+              className="bg-orange-200 text-orange-900 hover:bg-orange-300 border border-orange-200"
+              onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-focus')) }}
+            >專注</Button>
           </div>
           {/* 第三行（手機）：導航 */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <Link href="/board"><Button variant="outline">看板</Button></Link>
             <Link href="/calendar"><Button variant="outline">日曆</Button></Link>
             <Link href="/projects"><Button variant="outline">專案</Button></Link>
             <Link href="/growth"><Button variant="outline">成長</Button></Link>
           </div>
           {/* 第四行（手機）：等級/火焰/主題 */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <div className="flex items-center gap-2 px-2">
               <span className="text-xs">Lv {level.level}</span>
               <div className="w-20 sm:w-24 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${Math.round(level.progress*100)}%` }} /></div>
@@ -116,7 +110,6 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
             <button className="relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm" onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
               🔥 {streak.streak}
             </button>
-            <Button variant="ghost" aria-label={dark ? '切換為亮色' : '切換為夜間'} onClick={toggleTheme}>{dark ? '🌞' : '🌙'}</Button>
           </div>
         </div>
         {openPanel && (
