@@ -22,7 +22,7 @@ const EMPTY_SECTIONS = {
 }
 
 export default function JournalPage() {
-  const [date, setDate] = useState(todayLocal)
+  const [date, setDate] = useState(() => todayLocal())
   const [sections, setSections] = useState(EMPTY_SECTIONS)
   const [createdAt, setCreatedAt] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
@@ -39,13 +39,13 @@ export default function JournalPage() {
         if (!res.ok) throw new Error('failed')
         const json = await res.json()
         if (!ignore) {
-          setSections(json.entry.sections || EMPTY_SECTIONS)
+          setSections({ ...EMPTY_SECTIONS, ...(json.entry.sections || {}) })
           setCreatedAt(json.entry.created_at || '')
           setUpdatedAt(json.entry.updated_at || '')
         }
       } catch {
         if (!ignore) {
-          setSections(EMPTY_SECTIONS)
+          setSections({ ...EMPTY_SECTIONS })
           setCreatedAt('')
           setUpdatedAt('')
         }
