@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ChipsInput from '@/components/chips-input'
+import { ATTRIBUTE_LABEL, attributeColor, detectAttributes } from '@/lib/attributes'
 
 type Item = {
   id: string
@@ -393,9 +394,20 @@ export default function HomePage() {
           ))}
           {(view==='tasks' || view==='all') && filteredTasks.map(t => {
             const effStatus = (t.effective_status as any) || t.status
+            const attrs = detectAttributes(t.title || '')
             return (
             <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
-              <Card className={`hover:shadow-md transition ${effStatus==='done' ? 'opacity-60' : ''}`}>
+              <Card className={`hover:shadow-md transition relative ${effStatus==='done' ? 'opacity-60' : ''}`}>
+                {attrs.length > 0 && (
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {attrs.slice(0,3).map(key => (
+                      <span key={key} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full text-white"
+                        style={{ backgroundColor: attributeColor(key) }}>
+                        {ATTRIBUTE_LABEL[key] || key}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
