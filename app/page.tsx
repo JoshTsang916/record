@@ -162,7 +162,7 @@ export default function HomePage() {
     if (taskSortBy === 'priority') arr = [...arr].sort((a,b)=> (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
     else arr = [...arr].sort((a,b)=> b.created_at.localeCompare(a.created_at))
     return arr
-  }, [tasks, q, tag, taskStatusFilter, taskSortBy, hideCompleted])
+  }, [tasks, q, tag, taskStatusFilter, taskSortBy, hideCompleted, taskAttrFilter])
 
   function statusZh(s: string) {
     switch (s) {
