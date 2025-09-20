@@ -20,10 +20,11 @@ export async function POST(req: NextRequest) {
     const minutes: number = Number(body.minutes || 0)
     const dateStr: string = body.date || ymdLocal(new Date())
     const idempotency = `${source}:${task_id}:${dateStr}`
+    const overrideAttrs: string[] = Array.isArray(body.attributes) ? body.attributes.map((x: string) => String(x).toUpperCase()) : []
 
     // compute XP and attributes (parallel add)
     const xp = Math.max(0, Math.round(minutes))
-    const attrs = detectAttributes(task_title)
+    const attrs = overrideAttrs.length > 0 ? overrideAttrs : detectAttributes(task_title)
 
     const ym = dateStr.slice(0,7)
     const path = `game/xp/${ym}.jsonl`

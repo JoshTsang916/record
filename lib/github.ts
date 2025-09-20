@@ -1,6 +1,6 @@
-import { INDEX_PATH, PROJECTS_INDEX_PATH, TASKS_INDEX_PATH } from './id'
-import { IndexRecord, IdeaFile, ProjectIndexRecord, TaskIndexRecord, ProjectFile, TaskFile } from './types'
-import { parseIdea, serializeIdea, parseProject, parseTask } from './markdown'
+import { INDEX_PATH, PROJECTS_INDEX_PATH, TASKS_INDEX_PATH, JOURNAL_INDEX_PATH } from './id'
+import { IndexRecord, IdeaFile, ProjectIndexRecord, TaskIndexRecord, ProjectFile, TaskFile, JournalIndexRecord, JournalFile } from './types'
+import { parseIdea, serializeIdea, parseProject, parseTask, parseJournal } from './markdown'
 
 function getRepo() {
   const repo = process.env.GITHUB_REPO
@@ -204,4 +204,25 @@ export async function readTaskFileByPath(path: string): Promise<TaskFile> {
   const body = await getContent(path)
   if (!body) throw new Error('Task file not found')
   return parseTask(body)
+}
+
+export async function readJournalIndex(): Promise<JournalIndexRecord[]> {
+  const body = await getContent(JOURNAL_INDEX_PATH)
+  if (!body) return []
+  try {
+    const parsed = JSON.parse(body)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export async function replaceJournalIndex(list: JournalIndexRecord[], message = 'chore(journal): update index') {
+  await commitFiles({ message, files: [{ path: JOURNAL_INDEX_PATH, content: JSON.stringify(list, null, 2) }] })
+}
+
+export async function readJournalFileByPath(path: string): Promise<JournalFile> {
+  const body = await getContent(path)
+  if (!body) throw new Error('Journal file not found')
+  return parseJournal(body)
 }

@@ -9,6 +9,7 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
   const [streak, setStreak] = useState<{ streak: number, week_count: number, week_minutes: number }>({ streak: 0, week_count: 0, week_minutes: 0 })
   const [openPanel, setOpenPanel] = useState(false)
   const [level, setLevel] = useState<{ level: number, progress: number }>({ level: 1, progress: 0 })
+  const [journalStreak, setJournalStreak] = useState<{ streak: number, highlight: boolean }>({ streak: 0, highlight: false })
 
   useEffect(() => {
     // theme init
@@ -43,6 +44,11 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
         const res = await fetch('/api/focus/stats', { cache: 'no-store' })
         if (res.ok) {
           const j = await res.json(); setStreak({ streak: j.streak||0, week_count: j.week_count||0, week_minutes: j.week_minutes||0 })
+        }
+        const jr = await fetch('/api/journal/stats', { cache: 'no-store' })
+        if (jr.ok) {
+          const js = await jr.json()
+          setJournalStreak({ streak: js.streak || 0, highlight: !!js.highlight })
         }
       } catch {}
       await refreshXp()
@@ -92,6 +98,11 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
               className="bg-orange-200 text-orange-900 hover:bg-orange-300 border border-orange-200"
               onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('open-focus')) }}
             >專注</Button>
+            <Link href="/journal">
+              <Button
+                className={`border text-sm ${journalStreak.highlight ? 'ring-2 ring-yellow-300 animate-pulse border-yellow-300 bg-yellow-100 text-yellow-900' : 'border-gray-300 dark:border-gray-700'}`}
+              >日記{journalStreak.streak > 0 ? ` (${journalStreak.streak})` : ''}</Button>
+            </Link>
           </div>
           {/* 第三行（手機）：導航 */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -107,7 +118,9 @@ export default function Navbar({ onRecordClick, onNewText }: { onRecordClick?: (
               <div className="w-20 sm:w-24 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${Math.round(level.progress*100)}%` }} /></div>
               <span className="text-xs">{Math.round(level.progress*100)}%</span>
             </div>
-            <button className="relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm" onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
+            <button
+              className={`relative h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 text-sm ${streak.streak >= 5 ? 'ring-2 ring-orange-300 animate-pulse' : ''}`}
+              onClick={()=>setOpenPanel(v=>!v)} title="連續專注">
               🔥 {streak.streak}
             </button>
           </div>

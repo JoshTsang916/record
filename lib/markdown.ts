@@ -1,4 +1,4 @@
-import { IdeaFile, IdeaFrontmatter, ProjectFile, ProjectFrontmatter, TaskFile, TaskFrontmatter } from './types'
+import { IdeaFile, IdeaFrontmatter, ProjectFile, ProjectFrontmatter, TaskFile, TaskFrontmatter, JournalFile, JournalFrontmatter } from './types'
 
 // Very small frontmatter serializer to predictable YAML subset
 export function serializeIdea({ frontmatter, content }: IdeaFile): string {
@@ -172,6 +172,44 @@ export function parseTask(md: string): TaskFile {
     estimate: typeof data.estimate === 'number' ? data.estimate : undefined,
     assignee: data.assignee ? String(data.assignee) : undefined,
     relations: { links: Array.isArray(data.relations?.links) ? data.relations.links : [] }
+  }
+  return { frontmatter: fm, content }
+}
+
+// Journals
+export function serializeJournal({ frontmatter, content }: JournalFile): string {
+  const fm = frontmatter
+  const yaml = [
+    '---',
+    `date: ${fm.date}`,
+    `created_at: ${fm.created_at}`,
+    `updated_at: ${fm.updated_at}`,
+    'sections:',
+    `  accomplishment: ${escapeYaml(fm.sections.accomplishment)}`,
+    `  gratitude: ${escapeYaml(fm.sections.gratitude)}`,
+    `  insight: ${escapeYaml(fm.sections.insight)}`,
+    `  reflection: ${escapeYaml(fm.sections.reflection)}`,
+    `  focus: ${escapeYaml(fm.sections.focus)}`,
+    '---',
+    '',
+    content || ''
+  ].join('\n')
+  return yaml
+}
+
+export function parseJournal(md: string): JournalFile {
+  const { data, content } = parseFrontmatterBlock(md)
+  const fm: JournalFrontmatter = {
+    date: String(data.date || ''),
+    created_at: String(data.created_at || ''),
+    updated_at: String(data.updated_at || ''),
+    sections: {
+      accomplishment: String(data.sections?.accomplishment || ''),
+      gratitude: String(data.sections?.gratitude || ''),
+      insight: String(data.sections?.insight || ''),
+      reflection: String(data.sections?.reflection || ''),
+      focus: String(data.sections?.focus || '')
+    }
   }
   return { frontmatter: fm, content }
 }

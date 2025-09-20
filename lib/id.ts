@@ -44,3 +44,9 @@ export function taskMdPath(id: string, iso: string) {
   return `tasks/${yyyymm(d)}/${id}.md`
 }
 export const TASKS_INDEX_PATH = 'tasks/_index/index.json'
+
+export function journalMdPath(date: string) {
+  const year = date.slice(0, 4)
+  return `journals/${year}/${date}.md`
+}
+export const JOURNAL_INDEX_PATH = 'journals/_index/index.json'

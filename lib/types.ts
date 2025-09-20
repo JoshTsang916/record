@@ -107,3 +107,27 @@ export interface TaskFile {
   frontmatter: TaskFrontmatter
   content: string
 }
+
+export interface JournalFrontmatter {
+  date: string
+  created_at: string
+  updated_at: string
+  sections: {
+    accomplishment: string
+    gratitude: string
+    insight: string
+    reflection: string
+    focus: string
+  }
+}
+
+export interface JournalIndexRecord {
+  date: string
+  updated_at: string
+  file_path: string
+}
+
+export interface JournalFile {
+  frontmatter: JournalFrontmatter
+  content: string
+}
