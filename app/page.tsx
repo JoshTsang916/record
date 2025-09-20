@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 // Navbar is included globally in layout
 import RecorderModal from '@/components/recorder'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ChipsInput from '@/components/chips-input'
-import { ATTRIBUTE_LABEL, attributeColor, detectAttributes } from '@/lib/attributes'
+import { ATTRIBUTE_LABEL, ATTRIBUTE_ORDER, attributeColor, detectAttributes } from '@/lib/attributes'
 
 type Item = {
   id: string
@@ -47,6 +47,7 @@ export default function HomePage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [taskStatusFilter, setTaskStatusFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [taskAttrFilter, setTaskAttrFilter] = useState('')
   const [sortBy, setSortBy] = useState<'newest'|'importance'>('newest')
   const [taskSortBy, setTaskSortBy] = useState<'newest'|'priority'>('newest')
   const [view, setView] = useState<'ideas'|'tasks'|'all'>('ideas')
@@ -154,7 +155,9 @@ export default function HomePage() {
       const matchStatus = !taskStatusFilter || eff === (taskStatusFilter as any)
       const matchDone = hideCompleted ? t.status !== 'done' : true
       const matchDoneEff = hideCompleted ? eff !== 'done' : true
-      return matchQ && matchTag && matchStatus && matchDone && matchDoneEff
+      const attrs = detectAttributes(t.title || '')
+      const matchAttr = !taskAttrFilter || attrs.includes(taskAttrFilter)
+      return matchQ && matchTag && matchStatus && matchDone && matchDoneEff && matchAttr
     })
     if (taskSortBy === 'priority') arr = [...arr].sort((a,b)=> (b.priority - a.priority) || b.updated_at.localeCompare(a.updated_at))
     else arr = [...arr].sort((a,b)=> b.created_at.localeCompare(a.created_at))
@@ -260,6 +263,12 @@ export default function HomePage() {
                 <option value="in_progress">進行中</option>
                 <option value="blocked">受阻</option>
                 <option value="done">完成</option>
+              </select>
+              <select value={taskAttrFilter} onChange={e => setTaskAttrFilter(e.target.value)} className="h-10 rounded-md border px-3 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 w-full sm:w-auto">
+                <option value="">所有屬性</option>
+                {ATTRIBUTE_ORDER.map(key => (
+                  <option key={key} value={key}>{ATTRIBUTE_LABEL[key]} ({key})</option>
+                ))}
               </select>
               <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
                 <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} /> 隱藏已完成
@@ -395,9 +404,22 @@ export default function HomePage() {
           {(view==='tasks' || view==='all') && filteredTasks.map(t => {
             const effStatus = (t.effective_status as any) || t.status
             const attrs = detectAttributes(t.title || '')
+            let cardStyle: CSSProperties | undefined
+            if (attrs.length === 1) {
+              const color = attributeColor(attrs[0])
+              cardStyle = { borderColor: color, borderWidth: '2px', borderStyle: 'solid' }
+            } else if (attrs.length > 1) {
+              const segment = 100 / attrs.length
+              const stops = attrs.map((key, idx) => {
+                const start = Math.round(idx * segment)
+                const end = Math.round((idx + 1) * segment)
+                return `${attributeColor(key)} ${start}% ${end}%`
+              }).join(', ')
+              cardStyle = { borderWidth: '2px', borderStyle: 'solid', borderImage: `linear-gradient(135deg, ${stops}) 1` }
+            }
             return (
             <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
-              <Card className={`hover:shadow-md transition relative ${effStatus==='done' ? 'opacity-60' : ''}`}>
+              <Card className={`hover:shadow-md transition relative ${effStatus==='done' ? 'opacity-60' : ''}`} style={cardStyle}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
