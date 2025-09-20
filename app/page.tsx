@@ -398,16 +398,6 @@ export default function HomePage() {
             return (
             <Link key={t.id} href={{ pathname: `/tasks/${t.id}`, query: { path: t.file_path } }}>
               <Card className={`hover:shadow-md transition relative ${effStatus==='done' ? 'opacity-60' : ''}`}>
-                {attrs.length > 0 && (
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    {attrs.slice(0,3).map(key => (
-                      <span key={key} className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full text-white"
-                        style={{ backgroundColor: attributeColor(key) }}>
-                        {ATTRIBUTE_LABEL[key] || key}
-                      </span>
-                    ))}
-                  </div>
-                )}
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -465,9 +455,23 @@ export default function HomePage() {
                   ) : (
                     <div className="mt-2 text-xs text-gray-500">Tags:</div>
                   )}
-              </CardContent>
-            </Card>
-          </Link>
+                </CardContent>
+                {attrs.length > 0 && (
+                  <div className="absolute bottom-2 right-2 flex gap-1">
+                    {attrs.slice(0,3).map(key => (
+                      <span
+                        key={key}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold text-white shadow-sm"
+                        style={{ backgroundColor: attributeColor(key) }}
+                        title={ATTRIBUTE_LABEL[key] || key}
+                      >
+                        {key === 'EV' ? 'EV' : key.charAt(0)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </Link>
           )})}
         </div>
       </div>
