@@ -70,7 +70,7 @@ export default function JournalPage() {
       setUpdatedAt(new Date().toISOString())
       show({ message: json?.xp?.skipped ? '日記已更新' : '日記已儲存＋10 XP' })
     } catch (e: any) {
-      show({ message: e?.message || '儲存失敗', type: 'error' })
+      show({ message: e?.message || '儲存失敗' })
     } finally {
       setSaving(false)
     }
